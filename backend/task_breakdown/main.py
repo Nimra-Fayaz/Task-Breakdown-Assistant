@@ -2,8 +2,9 @@
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from task_breakdown.api import tasks, guides, ratings
-from task_breakdown.database import engine, Base
+
+from task_breakdown.api import guides, ratings, tasks
+from task_breakdown.database import Base, engine
 
 # Create database tables
 Base.metadata.create_all(bind=engine)

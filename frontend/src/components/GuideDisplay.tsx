@@ -134,8 +134,9 @@ function GuideDisplay({ guide }: GuideDisplayProps) {
       })
 
       if (response.ok) {
+        // Consume response body (required by fetch API best practices)
+        await response.json()
         // Refresh rating stats
-        const data = await response.json()
         fetch(`http://localhost:8000/api/ratings/${guide.id}`)
           .then(res => res.json())
           .then(data => setRatingStats(data))

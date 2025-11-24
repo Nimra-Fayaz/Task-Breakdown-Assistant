@@ -1,8 +1,8 @@
 """Pydantic schemas for request/response validation."""
 
-from pydantic import BaseModel, Field
-from typing import Optional, List
 from datetime import datetime
+
+from pydantic import BaseModel, Field
 
 
 class GuideStepBase(BaseModel):
@@ -10,14 +10,14 @@ class GuideStepBase(BaseModel):
     step_number: int
     title: str
     description: str
-    detailed_instructions: Optional[str] = None
-    estimated_time: Optional[int] = None
-    dependencies: Optional[List[int]] = None
-    resources: Optional[List[str]] = None
-    code_snippets: Optional[List[str]] = None
-    tips: Optional[str] = None
-    warnings: Optional[str] = None
-    verification_steps: Optional[str] = None
+    detailed_instructions: str | None = None
+    estimated_time: int | None = None
+    dependencies: list[int] | None = None
+    resources: list[str] | None = None
+    code_snippets: list[str] | None = None
+    tips: str | None = None
+    warnings: str | None = None
+    verification_steps: str | None = None
 
 
 class GuideStepCreate(GuideStepBase):
@@ -30,7 +30,7 @@ class GuideStepResponse(GuideStepBase):
     id: int
     task_id: int
     created_at: datetime
-    
+
     class Config:
         from_attributes = True
 
@@ -38,33 +38,33 @@ class GuideStepResponse(GuideStepBase):
 class TaskCreate(BaseModel):
     """Schema for creating a task."""
     description: str = Field(..., min_length=10, description="Task description")
-    title: Optional[str] = None
+    title: str | None = None
 
 
 class TaskResponse(BaseModel):
     """Schema for task response."""
     id: int
-    title: Optional[str]
+    title: str | None
     description: str
     complexity_score: int
-    estimated_total_time: Optional[int]
+    estimated_total_time: int | None
     created_at: datetime
-    updated_at: Optional[datetime]
-    
+    updated_at: datetime | None
+
     class Config:
         from_attributes = True
 
 
 class TaskWithGuideResponse(TaskResponse):
     """Schema for task with guide steps."""
-    guide_steps: List[GuideStepResponse] = []
+    guide_steps: list[GuideStepResponse] = []
 
 
 class RatingCreate(BaseModel):
     """Schema for creating a rating."""
     task_id: int
     rating: int = Field(..., ge=1, le=5, description="Rating from 1 to 5")
-    comment: Optional[str] = None
+    comment: str | None = None
 
 
 class RatingResponse(BaseModel):
@@ -72,9 +72,9 @@ class RatingResponse(BaseModel):
     id: int
     task_id: int
     rating: int
-    comment: Optional[str]
+    comment: str | None
     created_at: datetime
-    
+
     class Config:
         from_attributes = True
 
@@ -84,5 +84,5 @@ class RatingStatsResponse(BaseModel):
     task_id: int
     average_rating: float
     total_ratings: int
-    ratings: List[RatingResponse]
+    ratings: list[RatingResponse]
 

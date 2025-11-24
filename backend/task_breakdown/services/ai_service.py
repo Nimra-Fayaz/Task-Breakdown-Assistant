@@ -1,12 +1,15 @@
 """AI service for generating detailed task breakdowns."""
 
-import os
 import json
+import os
+
 import requests
-from typing import List, Dict
 from dotenv import load_dotenv
 
 load_dotenv()
+
+# Constants
+HTTP_OK = 200
 
 # Try to import OpenAI (optional)
 try:
@@ -40,7 +43,7 @@ def check_ollama_available():
         # Test if Ollama server is running
         try:
             response = requests.get("http://localhost:11434/api/tags", timeout=3)
-            if response.status_code == 200:
+            if response.status_code == HTTP_OK:
                 # Check if llama3.2 model is available
                 models = response.json().get('models', [])
                 model_names = [m.get('name', '') for m in models]
@@ -72,7 +75,6 @@ if AI_SERVICE == "ollama":
             print("Warning: ollama package not installed. Run: poetry install")
         else:
             print("Warning: Ollama server not running. Install from https://ollama.com and run: ollama serve")
-    OLLAMA_AVAILABLE = OLLAMA_AVAILABLE  # Set the flag
 elif AI_SERVICE == "openai" and OPENAI_AVAILABLE:
     openai_api_key = os.getenv("OPENAI_API_KEY")
     if openai_api_key:
@@ -100,17 +102,17 @@ else:
         print("Warning: ollama package not installed. Run: poetry add ollama")
 
 
-def generate_task_breakdown(task_description: str) -> Dict:
+def generate_task_breakdown(task_description: str) -> dict:
     """
     Generate a detailed, beginner-friendly task breakdown using AI.
-    
+
     Args:
         task_description: The task/assignment description
-        
+
     Returns:
         Dictionary with task metadata and guide steps
     """
-    
+
     prompt = f"""You are an expert task breakdown assistant. Your job is to break down complex tasks into EXTREMELY DETAILED, beginner-friendly step-by-step guides. You handle BOTH software AND hardware/electronics tasks.
 
 CRITICAL: You MUST stay focused on the EXACT task described. If the task is about Python, use Python. If it's about Node.js, use Node.js. If it's about hardware, focus on hardware. DO NOT mix technologies or create steps for different technologies than what was requested.
@@ -219,22 +221,22 @@ Make sure the detailed_instructions are extremely detailed and beginner-friendly
             if OLLAMA_AVAILABLE and ollama_module:
                 ollama = ollama_module
                 ollama_client = True
-        
+
         if AI_SERVICE == "ollama" and ollama_client:
             print("Calling Ollama (local Llama) API...")  # Debug log
             full_prompt = f"""You are an expert personal tutor who breaks down complex tasks into EXTREMELY DETAILED, beginner-friendly step-by-step guides.
 
-🚨 CRITICAL RULE - READ THIS FIRST: 
+🚨 CRITICAL RULE - READ THIS FIRST:
 The user asked for: "{task_description}"
-You MUST create steps ONLY for this exact task. 
+You MUST create steps ONLY for this exact task.
 - If they ask for Python → use Python commands, Python files (.py), Python syntax
 - If they ask for Node.js → use Node.js commands, npm, package.json
 - If they ask for hardware → use hardware components, wiring, pins
 DO NOT mix technologies. DO NOT add steps for technologies not mentioned in the task.
 
-Your instructions should be like guiding someone in person - tell them WHERE to go (exact locations, menus, buttons), WHAT to do (specific actions, clicks, commands), HOW to do it (exact steps, keyboard shortcuts), WHAT to expect (exact output, visual confirmation), and HOW to verify (check this, see that). 
+Your instructions should be like guiding someone in person - tell them WHERE to go (exact locations, menus, buttons), WHAT to do (specific actions, clicks, commands), HOW to do it (exact steps, keyboard shortcuts), WHAT to expect (exact output, visual confirmation), and HOW to verify (check this, see that).
 
-For hardware tasks, provide detailed wiring instructions with exact pin numbers, wire colors, physical locations on the board, component specifications, and physical setup steps. 
+For hardware tasks, provide detailed wiring instructions with exact pin numbers, wire colors, physical locations on the board, component specifications, and physical setup steps.
 
 For software tasks, include OS-specific instructions (Windows/Mac/Linux), exact commands, file paths, and visual confirmations. Use ONLY the programming language, framework, or tool mentioned in the task description.
 
@@ -282,11 +284,11 @@ CRITICAL FORMAT RULES:
 - Do NOT use objects: [{{"language": "bash", "code": "npm init -y"}}] is WRONG
 - dependencies must be array of integers: [1, 2] not ["1", "2"]
 - resources must be array of strings: ["https://example.com"]"""
-            
+
             try:
                 # Use generate with timeout options
                 response = ollama.generate(
-                    model=ollama_model_name, 
+                    model=ollama_model_name,
                     prompt=full_prompt,
                     options={'num_predict': 4000}  # Increased for better JSON generation
                 )
@@ -295,14 +297,14 @@ CRITICAL FORMAT RULES:
             except Exception as ollama_error:
                 error_str = str(ollama_error)
                 print(f"Ollama error: {error_str}")
-                raise Exception(f"Ollama API error: {error_str[:200]}. Make sure Ollama is running: install from https://ollama.com and run 'ollama serve'")
-        
+                raise Exception(f"Ollama API error: {error_str[:200]}. Make sure Ollama is running: install from https://ollama.com and run 'ollama serve'") from ollama_error
+
         elif AI_SERVICE == "gemini" and gemini_model:
             print("Calling Google Gemini API (free)...")  # Debug log
             full_prompt = f"""You are an expert personal tutor who breaks down complex tasks into EXTREMELY DETAILED, beginner-friendly step-by-step guides. You handle both software development tasks AND hardware/electronics tasks (like ESP32, Arduino, Raspberry Pi, sensors, LEDs, etc.). Your instructions should be like guiding someone in person - tell them WHERE to go (exact locations, menus, buttons), WHAT to do (specific actions, clicks, commands), HOW to do it (exact steps, keyboard shortcuts), WHAT to expect (exact output, visual confirmation), and HOW to verify (check this, see that). For hardware tasks, provide detailed wiring instructions with exact pin numbers, wire colors, physical locations on the board, component specifications, and physical setup steps. For software tasks, include OS-specific instructions (Windows/Mac/Linux), exact commands, file paths, and visual confirmations. Always assume the user knows NOTHING and needs to be told every single detail - like explaining to someone who has never used a computer before. Include visual descriptions, exact button locations, keyboard shortcuts, and what they should see at each step.
 
 {prompt}"""
-            
+
             try:
                 # Use gemini-1.5-flash (stable and free)
                 response = gemini_model.generate_content(full_prompt)
@@ -312,7 +314,7 @@ CRITICAL FORMAT RULES:
                 # If model fails, try gemini-1.5-pro as fallback
                 error_str = str(model_error)
                 print(f"Model error: {error_str}. Trying gemini-1.5-pro...")
-                
+
                 try:
                     fallback_model = genai.GenerativeModel('gemini-1.5-pro')
                     response = fallback_model.generate_content(full_prompt)
@@ -322,9 +324,9 @@ CRITICAL FORMAT RULES:
                     error_str = str(fallback_error)
                     # Check if it's an API key error
                     if "api key" in error_str.lower() or "invalid" in error_str.lower() or "401" in error_str or "403" in error_str:
-                        raise Exception(f"Invalid or unauthorized Gemini API key. Please check your API key at https://aistudio.google.com/app/apikey. Error: {error_str[:200]}")
-                    raise Exception(f"Gemini API error: {error_str[:200]}. Please check Google AI Studio at https://aistudio.google.com/app/apikey")
-            
+                        raise Exception(f"Invalid or unauthorized Gemini API key. Please check your API key at https://aistudio.google.com/app/apikey. Error: {error_str[:200]}") from fallback_error
+                    raise Exception(f"Gemini API error: {error_str[:200]}. Please check Google AI Studio at https://aistudio.google.com/app/apikey") from fallback_error
+
         elif AI_SERVICE == "openai" and openai_client:
             print("Calling OpenAI API...")  # Debug log
             response = openai_client.chat.completions.create(
@@ -348,11 +350,11 @@ CRITICAL FORMAT RULES:
             # Provide detailed error message with installation instructions
             error_details = []
             installation_help = ""
-            
+
             if AI_SERVICE == "ollama":
                 # Re-check at runtime
                 OLLAMA_AVAILABLE_RT, ollama_module_rt = check_ollama_available()
-                
+
                 if not OLLAMA_AVAILABLE_RT:
                     # Check if it's package or server issue
                     try:
@@ -366,7 +368,7 @@ CRITICAL FORMAT RULES:
                 else:
                     error_details.append("Ollama initialization failed (check server logs)")
                     installation_help = "\n\n📋 TO FIX: Check that Ollama server is running and llama3.2 model is downloaded"
-                    
+
             elif AI_SERVICE == "gemini":
                 if not GEMINI_AVAILABLE:
                     error_details.append("google-generativeai package not installed (run: poetry install)")
@@ -381,40 +383,40 @@ CRITICAL FORMAT RULES:
                 if not os.getenv("OPENAI_API_KEY"):
                     error_details.append("OPENAI_API_KEY not found in .env file")
                     installation_help = "\n\n📋 TO FIX: Get API key from https://platform.openai.com/api-keys and add to .env"
-            
+
             error_msg = "No AI service configured. "
             if error_details:
                 error_msg += "Issues: " + "; ".join(error_details)
             else:
                 error_msg += f"Please set {AI_SERVICE.upper()}_API_KEY in .env file"
-            
+
             error_msg += installation_help
-            
+
             raise Exception(error_msg)
-        
+
         # Try to extract JSON from the response
         # Sometimes AI wraps JSON in markdown code blocks
         original_content = content
-        
+
         # Remove markdown code blocks
         if "```json" in content:
             content = content.split("```json")[1].split("```")[0].strip()
         elif "```" in content:
             # Try to find JSON between code blocks
             parts = content.split("```")
-            for i, part in enumerate(parts):
-                part = part.strip()
-                if part.startswith("{") and "title" in part:
-                    content = part
+            for part in parts:
+                part_stripped = part.strip()
+                if part_stripped.startswith("{") and "title" in part_stripped:
+                    content = part_stripped
                     break
             else:
                 # If no JSON found, try the first part that looks like JSON
                 for part in parts:
-                    part = part.strip()
-                    if part.startswith("{"):
-                        content = part
+                    part_stripped = part.strip()
+                    if part_stripped.startswith("{"):
+                        content = part_stripped
                         break
-        
+
         # Try to find JSON object in the content
         if not content.startswith("{"):
             # Find the first { and last }
@@ -422,12 +424,12 @@ CRITICAL FORMAT RULES:
             end_idx = content.rfind("}")
             if start_idx != -1 and end_idx != -1 and end_idx > start_idx:
                 content = content[start_idx:end_idx+1]
-        
+
         # Clean up common issues
         content = content.strip()
         # Remove any leading/trailing whitespace or newlines
         content = content.lstrip().rstrip()
-        
+
         # Try to parse JSON
         try:
             result = json.loads(content)
@@ -436,19 +438,19 @@ CRITICAL FORMAT RULES:
                 raise json.JSONDecodeError("Missing required fields", content, 0)
             return result
         except json.JSONDecodeError as e:
-            print(f"JSON decode error: {str(e)}")  # Debug log
+            print(f"JSON decode error: {e!s}")  # Debug log
             print(f"Response content (first 1000 chars): {original_content[:1000]}")  # Debug log
             print(f"Extracted content (first 500 chars): {content[:500]}")  # Debug log
-            
+
             # Try to fix common JSON issues and retry
             try:
                 import re
                 content_fixed = content
-                
+
                 # Fix trailing commas
                 content_fixed = re.sub(r',\s*}', '}', content_fixed)
                 content_fixed = re.sub(r',\s*]', ']', content_fixed)
-                
+
                 # Fix invalid escape sequences (common issue: \ followed by non-escape char)
                 # Replace invalid escapes with valid ones or remove them
                 # But be careful not to break valid escapes like \n, \t, etc.
@@ -473,7 +475,7 @@ CRITICAL FORMAT RULES:
                                         int(unicode_val, 16)  # Validate hex
                                         result.append(text[i:i+6])
                                         i += 6
-                                    except:
+                                    except Exception:
                                         # Invalid unicode - remove backslash
                                         result.append(next_char)
                                         i += 2
@@ -493,9 +495,9 @@ CRITICAL FORMAT RULES:
                             result.append(text[i])
                             i += 1
                     return ''.join(result)
-                
+
                 content_fixed = fix_escapes(content_fixed)
-                
+
                 # Try parsing again
                 result = json.loads(content_fixed)
                 if "title" not in result or "steps" not in result:
@@ -505,43 +507,43 @@ CRITICAL FORMAT RULES:
             except Exception as fix_error:
                 print(f"JSON fix attempt failed: {str(fix_error)[:200]}")
                 pass
-            
+
             # If all else fails, raise an error instead of returning fallback
-            raise Exception(f"Failed to parse AI response as JSON. The AI may have generated invalid JSON. Error: {str(e)[:200]}. Please try generating the guide again.")
+            raise Exception(f"Failed to parse AI response as JSON. The AI may have generated invalid JSON. Error: {str(e)[:200]}. Please try generating the guide again.") from e
     except Exception as e:
         import traceback
         error_trace = traceback.format_exc()
         error_str = str(e)
-        
+
         # Check for specific API errors
         if "insufficient_quota" in error_str or "429" in error_str or "quota" in error_str.lower():
             if AI_SERVICE == "openai":
-                raise Exception("OpenAI API quota exceeded. Switch to Gemini (free) by setting AI_SERVICE=gemini in .env and adding GEMINI_API_KEY")
+                raise Exception("OpenAI API quota exceeded. Switch to Gemini (free) by setting AI_SERVICE=gemini in .env and adding GEMINI_API_KEY") from e
             else:
-                raise Exception("API quota exceeded. Please check your API key and account status")
+                raise Exception("API quota exceeded. Please check your API key and account status") from e
         elif "invalid_api_key" in error_str.lower() or "incorrect api key" in error_str.lower() or ("api key" in error_str.lower() and "invalid" in error_str.lower()):
-            raise Exception(f"Invalid {AI_SERVICE.upper()} API key. Please check your API key in the .env file. Get a new key from https://aistudio.google.com/app/apikey")
+            raise Exception(f"Invalid {AI_SERVICE.upper()} API key. Please check your API key in the .env file. Get a new key from https://aistudio.google.com/app/apikey") from e
         elif "rate_limit" in error_str:
-            raise Exception("API rate limit exceeded. Please wait a moment and try again")
+            raise Exception("API rate limit exceeded. Please wait a moment and try again") from e
         else:
             print(f"ERROR in generate_task_breakdown: {error_str}")  # Debug log
             print(f"Traceback: {error_trace}")  # Debug log
-            raise Exception(f"Error generating task breakdown: {error_str}")
+            raise Exception(f"Error generating task breakdown: {error_str}") from e
 
 
 def generate_step_instructions(step_title: str, step_description: str, context: str = "") -> str:
     """
     Generate detailed instructions for a single step.
-    
+
     Args:
         step_title: Title of the step
         step_description: Brief description
         context: Additional context about the task
-        
+
     Returns:
         Detailed beginner-friendly instructions
     """
-    
+
     prompt = f"""Generate extremely detailed, beginner-friendly instructions for this step:
 
 Step Title: {step_title}
@@ -592,6 +594,6 @@ Format as a numbered list with clear actions."""
             return response.choices[0].message.content
         else:
             return f"1. {step_description}\n2. Follow the standard process for this type of task."
-    except Exception as e:
+    except Exception:
         return f"1. {step_description}\n2. Follow the standard process for this type of task."
 

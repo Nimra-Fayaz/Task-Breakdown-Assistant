@@ -2,8 +2,9 @@
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+
 from task_breakdown.database import get_db
-from task_breakdown.models import Task, GuideStep
+from task_breakdown.models import GuideStep, Task
 from task_breakdown.schemas import GuideStepResponse
 
 router = APIRouter()
@@ -15,9 +16,9 @@ async def get_guide(task_id: int, db: Session = Depends(get_db)):
     task = db.query(Task).filter(Task.id == task_id).first()
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
-    
+
     steps = db.query(GuideStep).filter(GuideStep.task_id == task_id).order_by(GuideStep.step_number).all()
-    
+
     return [
         GuideStepResponse(
             id=step.id,

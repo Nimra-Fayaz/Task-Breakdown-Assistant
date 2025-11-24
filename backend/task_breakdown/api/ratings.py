@@ -1,14 +1,18 @@
 """Rating API endpoints."""
 
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from sqlalchemy import func
-from typing import List
+
 from task_breakdown.database import get_db
-from task_breakdown.models import Task, Rating
+from task_breakdown.models import Rating, Task
 from task_breakdown.schemas import RatingCreate, RatingResponse, RatingStatsResponse
 
 router = APIRouter()
+
+# Constants
+MAX_RATING = 5
+MIN_RATING = 1
 
 
 @router.post("/", response_model=RatingResponse, status_code=201)
@@ -18,11 +22,11 @@ async def create_rating(rating: RatingCreate, db: Session = Depends(get_db)):
     task = db.query(Task).filter(Task.id == rating.task_id).first()
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
-    
+
     # Validate rating
-    if rating.rating < 1 or rating.rating > 5:
-        raise HTTPException(status_code=400, detail="Rating must be between 1 and 5")
-    
+    if rating.rating < MIN_RATING or rating.rating > MAX_RATING:
+        raise HTTPException(status_code=400, detail=f"Rating must be between {MIN_RATING} and {MAX_RATING}")
+
     # Create rating
     db_rating = Rating(
         task_id=rating.task_id,
@@ -32,7 +36,7 @@ async def create_rating(rating: RatingCreate, db: Session = Depends(get_db)):
     db.add(db_rating)
     db.commit()
     db.refresh(db_rating)
-    
+
     return RatingResponse(
         id=db_rating.id,
         task_id=db_rating.task_id,
@@ -49,10 +53,10 @@ async def get_ratings(task_id: int, db: Session = Depends(get_db)):
     task = db.query(Task).filter(Task.id == task_id).first()
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
-    
+
     # Get ratings
     ratings = db.query(Rating).filter(Rating.task_id == task_id).all()
-    
+
     if not ratings:
         return RatingStatsResponse(
             task_id=task_id,
@@ -60,10 +64,10 @@ async def get_ratings(task_id: int, db: Session = Depends(get_db)):
             total_ratings=0,
             ratings=[]
         )
-    
+
     # Calculate average
     average = sum(r.rating for r in ratings) / len(ratings)
-    
+
     return RatingStatsResponse(
         task_id=task_id,
         average_rating=round(average, 2),

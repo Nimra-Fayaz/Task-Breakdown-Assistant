@@ -3,7 +3,6 @@ name = "task-breakdown-assistant"
 version = "0.1.0"
 description = "AI-powered task breakdown assistant with beginner-friendly detailed guides. Generates step-by-step instructions for complex tasks using OpenAI API."
 authors = ["Nimra Fayaz"]
-readme = "README.md"
 license = "MIT"
 homepage = "https://github.com/Nimra-Fayaz/task-breakdown-assistant"
 repository = "https://github.com/Nimra-Fayaz/task-breakdown-assistant"

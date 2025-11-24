@@ -1,0 +1,71 @@
+# Ruff configuration for static code analysis
+# Documentation: https://docs.astral.sh/ruff/
+
+# Target Python version
+target-version = "py310"
+
+# Line length
+line-length = 100
+
+# Enable specific rule sets
+[lint]
+# Select rule sets to enable
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "UP",  # pyupgrade
+    "ARG", # flake8-unused-arguments
+    "SIM", # flake8-simplify
+    "TCH", # flake8-type-checking
+    "PTH", # flake8-use-pathlib
+    "PL",  # Pylint
+    "RUF", # Ruff-specific rules
+]
+
+# Ignore specific rules
+ignore = [
+    "E501",  # Line too long (handled by formatter)
+    "PLR0913", # Too many arguments (sometimes necessary for API endpoints)
+    "PLR0912", # Too many branches (complex logic is acceptable)
+    "PLR0915", # Too many statements (complex function, refactoring would be risky)
+    "B008",  # Do not perform function calls in argument defaults
+    "T201",  # Print statements (we'll use logging instead)
+]
+
+# Allow autofix for all enabled rules
+fixable = ["ALL"]
+unfixable = []
+
+# Exclude patterns
+exclude = [
+    ".git",
+    "__pycache__",
+    "*.pyc",
+    ".venv",
+    "venv",
+    "env",
+    "dist",
+    "build",
+    "*.egg-info",
+]
+
+# Per-file ignores
+[lint.per-file-ignores]
+"__init__.py" = ["F401"]  # Allow unused imports in __init__.py
+"tests/**/*.py" = ["ARG", "PLR2004"]  # Allow magic numbers and unused args in tests
+
+# isort configuration
+[lint.isort]
+known-first-party = ["task_breakdown"]
+
+# Pylint configuration
+[lint.pylint]
+max-args = 10
+max-branches = 15
+max-returns = 8
+max-statements = 60
+

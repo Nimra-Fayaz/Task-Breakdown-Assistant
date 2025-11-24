@@ -1,11 +1,17 @@
 """Task API endpoints."""
 
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from typing import List
+
 from task_breakdown.database import get_db
-from task_breakdown.models import Task, GuideStep
-from task_breakdown.schemas import TaskCreate, TaskResponse, TaskWithGuideResponse, GuideStepResponse
+from task_breakdown.models import GuideStep, Task
+from task_breakdown.schemas import (
+    GuideStepResponse,
+    TaskCreate,
+    TaskResponse,
+    TaskWithGuideResponse,
+)
 from task_breakdown.services.ai_service import generate_task_breakdown
 
 router = APIRouter()
@@ -16,7 +22,7 @@ router = APIRouter()
 async def create_task(task: TaskCreate, db: Session = Depends(get_db)):
     """
     Create a new task and generate AI-powered breakdown.
-    
+
     This endpoint takes a task description and uses AI to generate
     a detailed, beginner-friendly step-by-step guide.
     """
@@ -25,7 +31,7 @@ async def create_task(task: TaskCreate, db: Session = Depends(get_db)):
         print(f"Generating breakdown for task: {task.description[:50]}...")  # Debug log
         breakdown = generate_task_breakdown(task.description)
         print(f"Breakdown generated successfully: {len(breakdown.get('steps', []))} steps")  # Debug log
-        
+
         # Create task
         db_task = Task(
             title=task.title or breakdown.get("title", "Untitled Task"),
@@ -35,7 +41,7 @@ async def create_task(task: TaskCreate, db: Session = Depends(get_db)):
         )
         db.add(db_task)
         db.flush()  # Get the task ID
-        
+
         # Create guide steps
         steps_data = breakdown.get("steps", [])
         for step_data in steps_data:
@@ -58,7 +64,7 @@ async def create_task(task: TaskCreate, db: Session = Depends(get_db)):
                     else:
                         # Convert any other type to string
                         code_snippets_normalized.append(str(snippet))
-            
+
             # Normalize dependencies - ensure it's a list of integers
             dependencies_raw = step_data.get("dependencies", [])
             dependencies_normalized = []
@@ -68,10 +74,10 @@ async def create_task(task: TaskCreate, db: Session = Depends(get_db)):
                         dependencies_normalized.append(dep)
                     elif isinstance(dep, str) and dep.isdigit():
                         dependencies_normalized.append(int(dep))
-                    elif isinstance(dep, (list, tuple)) and len(dep) > 0:
+                    elif isinstance(dep, list | tuple) and len(dep) > 0:
                         # Handle nested lists
-                        dependencies_normalized.append(int(dep[0]) if isinstance(dep[0], (int, str)) else 0)
-            
+                        dependencies_normalized.append(int(dep[0]) if isinstance(dep[0], int | str) else 0)
+
             # Normalize resources - ensure it's a list of strings
             resources_raw = step_data.get("resources", [])
             resources_normalized = []
@@ -83,7 +89,7 @@ async def create_task(task: TaskCreate, db: Session = Depends(get_db)):
                         resources_normalized.append(str(res['url']))
                     else:
                         resources_normalized.append(str(res))
-            
+
             db_step = GuideStep(
                 task_id=db_task.id,
                 step_number=int(step_data.get("step_number", 0)),
@@ -99,10 +105,10 @@ async def create_task(task: TaskCreate, db: Session = Depends(get_db)):
                 verification_steps=str(step_data.get("verification_steps", "")) if step_data.get("verification_steps") else None
             )
             db.add(db_step)
-        
+
         db.commit()
         db.refresh(db_task)
-        
+
         # Return task with guide steps
         return TaskWithGuideResponse(
             id=db_task.id,
@@ -132,17 +138,17 @@ async def create_task(task: TaskCreate, db: Session = Depends(get_db)):
                 for step in db_task.guide_steps
             ]
         )
-        
+
     except Exception as e:
         db.rollback()
         import traceback
         error_trace = traceback.format_exc()
-        print(f"ERROR in create_task: {str(e)}")  # Debug log
+        print(f"ERROR in create_task: {e!s}")  # Debug log
         print(f"Traceback: {error_trace}")  # Debug log
-        raise HTTPException(status_code=500, detail=f"Error creating task: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error creating task: {e!s}") from e
 
 
-@router.get("/", response_model=List[TaskResponse])
+@router.get("/", response_model=list[TaskResponse])
 async def get_tasks(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     """Get all tasks."""
     tasks = db.query(Task).offset(skip).limit(limit).all()
@@ -155,7 +161,7 @@ async def get_task(task_id: int, db: Session = Depends(get_db)):
     task = db.query(Task).filter(Task.id == task_id).first()
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
-    
+
     return TaskWithGuideResponse(
         id=task.id,
         title=task.title,
@@ -192,8 +198,7 @@ async def delete_task(task_id: int, db: Session = Depends(get_db)):
     task = db.query(Task).filter(Task.id == task_id).first()
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
-    
+
     db.delete(task)
     db.commit()
-    return None
 
