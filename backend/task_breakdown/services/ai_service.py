@@ -14,6 +14,7 @@ HTTP_OK = 200
 # Try to import OpenAI (optional)
 try:
     from openai import OpenAI
+
     OPENAI_AVAILABLE = True
 except ImportError:
     OPENAI_AVAILABLE = False
@@ -21,6 +22,7 @@ except ImportError:
 # Try to import Google Gemini (optional)
 try:
     import google.generativeai as genai
+
     GEMINI_AVAILABLE = True
 except ImportError:
     GEMINI_AVAILABLE = False
@@ -35,19 +37,21 @@ gemini_model = None
 ollama_client = None
 ollama_model_name = os.getenv("OLLAMA_MODEL", "llama3.2")  # Default to llama3.2
 
+
 # Function to check Ollama availability dynamically
 def check_ollama_available():
     """Check if Ollama package and server are available."""
     try:
         import ollama
+
         # Test if Ollama server is running
         try:
             response = requests.get("http://localhost:11434/api/tags", timeout=3)
             if response.status_code == HTTP_OK:
                 # Check if llama3.2 model is available
-                models = response.json().get('models', [])
-                model_names = [m.get('name', '') for m in models]
-                has_model = any('llama3.2' in name for name in model_names)
+                models = response.json().get("models", [])
+                model_names = [m.get("name", "") for m in models]
+                has_model = any("llama3.2" in name for name in model_names)
                 if has_model:
                     return True, ollama
                 else:
@@ -62,6 +66,7 @@ def check_ollama_available():
         print("Warning: ollama Python package not installed. Run: poetry install")
         return False, None
 
+
 # Initialize Ollama if it's the selected service
 if AI_SERVICE == "ollama":
     OLLAMA_AVAILABLE, ollama_module = check_ollama_available()
@@ -74,7 +79,9 @@ if AI_SERVICE == "ollama":
         if not OLLAMA_AVAILABLE:
             print("Warning: ollama package not installed. Run: poetry install")
         else:
-            print("Warning: Ollama server not running. Install from https://ollama.com and run: ollama serve")
+            print(
+                "Warning: Ollama server not running. Install from https://ollama.com and run: ollama serve"
+            )
 elif AI_SERVICE == "openai" and OPENAI_AVAILABLE:
     openai_api_key = os.getenv("OPENAI_API_KEY")
     if openai_api_key:
@@ -87,7 +94,7 @@ elif AI_SERVICE == "gemini" and GEMINI_AVAILABLE:
             # Configure API key
             genai.configure(api_key=gemini_api_key)
             # Initialize model (using gemini-1.5-flash which is stable and free)
-            gemini_model = genai.GenerativeModel('gemini-1.5-flash')
+            gemini_model = genai.GenerativeModel("gemini-1.5-flash")
             print(f"Gemini client initialized successfully (API key length: {len(gemini_api_key)})")
         except Exception as e:
             print(f"Failed to initialize Gemini client: {e}")
@@ -290,14 +297,16 @@ CRITICAL FORMAT RULES:
                 response = ollama.generate(
                     model=ollama_model_name,
                     prompt=full_prompt,
-                    options={'num_predict': 4000}  # Increased for better JSON generation
+                    options={"num_predict": 4000},  # Increased for better JSON generation
                 )
-                content = response['response']
+                content = response["response"]
                 print("Ollama API call successful")  # Debug log
             except Exception as ollama_error:
                 error_str = str(ollama_error)
                 print(f"Ollama error: {error_str}")
-                raise Exception(f"Ollama API error: {error_str[:200]}. Make sure Ollama is running: install from https://ollama.com and run 'ollama serve'") from ollama_error
+                raise Exception(
+                    f"Ollama API error: {error_str[:200]}. Make sure Ollama is running: install from https://ollama.com and run 'ollama serve'"
+                ) from ollama_error
 
         elif AI_SERVICE == "gemini" and gemini_model:
             print("Calling Google Gemini API (free)...")  # Debug log
@@ -316,16 +325,25 @@ CRITICAL FORMAT RULES:
                 print(f"Model error: {error_str}. Trying gemini-1.5-pro...")
 
                 try:
-                    fallback_model = genai.GenerativeModel('gemini-1.5-pro')
+                    fallback_model = genai.GenerativeModel("gemini-1.5-pro")
                     response = fallback_model.generate_content(full_prompt)
                     content = response.text
                     print("Gemini API call successful (using gemini-1.5-pro)")
                 except Exception as fallback_error:
                     error_str = str(fallback_error)
                     # Check if it's an API key error
-                    if "api key" in error_str.lower() or "invalid" in error_str.lower() or "401" in error_str or "403" in error_str:
-                        raise Exception(f"Invalid or unauthorized Gemini API key. Please check your API key at https://aistudio.google.com/app/apikey. Error: {error_str[:200]}") from fallback_error
-                    raise Exception(f"Gemini API error: {error_str[:200]}. Please check Google AI Studio at https://aistudio.google.com/app/apikey") from fallback_error
+                    if (
+                        "api key" in error_str.lower()
+                        or "invalid" in error_str.lower()
+                        or "401" in error_str
+                        or "403" in error_str
+                    ):
+                        raise Exception(
+                            f"Invalid or unauthorized Gemini API key. Please check your API key at https://aistudio.google.com/app/apikey. Error: {error_str[:200]}"
+                        ) from fallback_error
+                    raise Exception(
+                        f"Gemini API error: {error_str[:200]}. Please check Google AI Studio at https://aistudio.google.com/app/apikey"
+                    ) from fallback_error
 
         elif AI_SERVICE == "openai" and openai_client:
             print("Calling OpenAI API...")  # Debug log
@@ -334,15 +352,12 @@ CRITICAL FORMAT RULES:
                 messages=[
                     {
                         "role": "system",
-                        "content": "You are an expert personal tutor who breaks down complex tasks into EXTREMELY DETAILED, beginner-friendly step-by-step guides. You handle both software development tasks AND hardware/electronics tasks (like ESP32, Arduino, Raspberry Pi, sensors, LEDs, etc.). Your instructions should be like guiding someone in person - tell them WHERE to go (exact locations, menus, buttons), WHAT to do (specific actions, clicks, commands), HOW to do it (exact steps, keyboard shortcuts), WHAT to expect (exact output, visual confirmation), and HOW to verify (check this, see that). For hardware tasks, provide detailed wiring instructions with exact pin numbers, wire colors, physical locations on the board, component specifications, and physical setup steps. For software tasks, include OS-specific instructions (Windows/Mac/Linux), exact commands, file paths, and visual confirmations. Always assume the user knows NOTHING and needs to be told every single detail - like explaining to someone who has never used a computer before. Include visual descriptions, exact button locations, keyboard shortcuts, and what they should see at each step."
+                        "content": "You are an expert personal tutor who breaks down complex tasks into EXTREMELY DETAILED, beginner-friendly step-by-step guides. You handle both software development tasks AND hardware/electronics tasks (like ESP32, Arduino, Raspberry Pi, sensors, LEDs, etc.). Your instructions should be like guiding someone in person - tell them WHERE to go (exact locations, menus, buttons), WHAT to do (specific actions, clicks, commands), HOW to do it (exact steps, keyboard shortcuts), WHAT to expect (exact output, visual confirmation), and HOW to verify (check this, see that). For hardware tasks, provide detailed wiring instructions with exact pin numbers, wire colors, physical locations on the board, component specifications, and physical setup steps. For software tasks, include OS-specific instructions (Windows/Mac/Linux), exact commands, file paths, and visual confirmations. Always assume the user knows NOTHING and needs to be told every single detail - like explaining to someone who has never used a computer before. Include visual descriptions, exact button locations, keyboard shortcuts, and what they should see at each step.",
                     },
-                    {
-                        "role": "user",
-                        "content": prompt
-                    }
+                    {"role": "user", "content": prompt},
                 ],
                 temperature=0.7,
-                max_tokens=4000
+                max_tokens=4000,
             )
             print("OpenAI API call successful")  # Debug log
             content = response.choices[0].message.content
@@ -359,19 +374,24 @@ CRITICAL FORMAT RULES:
                     # Check if it's package or server issue
                     try:
                         import ollama
+
                         # Package is available, but server isn't
                         error_details.append("Ollama server not running")
                         installation_help = "\n\n📋 TO FIX:\n1. Install Ollama from https://ollama.com\n2. Close and reopen PowerShell\n3. Run: ollama pull llama3.2\n4. Restart backend server"
                     except ImportError:
                         error_details.append("ollama Python package not installed")
-                        installation_help = "\n\n📋 TO FIX: Run 'poetry install' in the backend folder"
+                        installation_help = (
+                            "\n\n📋 TO FIX: Run 'poetry install' in the backend folder"
+                        )
                 else:
                     error_details.append("Ollama initialization failed (check server logs)")
                     installation_help = "\n\n📋 TO FIX: Check that Ollama server is running and llama3.2 model is downloaded"
 
             elif AI_SERVICE == "gemini":
                 if not GEMINI_AVAILABLE:
-                    error_details.append("google-generativeai package not installed (run: poetry install)")
+                    error_details.append(
+                        "google-generativeai package not installed (run: poetry install)"
+                    )
                 if not os.getenv("GEMINI_API_KEY"):
                     error_details.append("GEMINI_API_KEY not found in .env file")
                     installation_help = "\n\n📋 TO FIX: Get free API key from https://aistudio.google.com/app/apikey and add to .env"
@@ -423,7 +443,7 @@ CRITICAL FORMAT RULES:
             start_idx = content.find("{")
             end_idx = content.rfind("}")
             if start_idx != -1 and end_idx != -1 and end_idx > start_idx:
-                content = content[start_idx:end_idx+1]
+                content = content[start_idx : end_idx + 1]
 
         # Clean up common issues
         content = content.strip()
@@ -445,11 +465,12 @@ CRITICAL FORMAT RULES:
             # Try to fix common JSON issues and retry
             try:
                 import re
+
                 content_fixed = content
 
                 # Fix trailing commas
-                content_fixed = re.sub(r',\s*}', '}', content_fixed)
-                content_fixed = re.sub(r',\s*]', ']', content_fixed)
+                content_fixed = re.sub(r",\s*}", "}", content_fixed)
+                content_fixed = re.sub(r",\s*]", "]", content_fixed)
 
                 # Fix invalid escape sequences (common issue: \ followed by non-escape char)
                 # Replace invalid escapes with valid ones or remove them
@@ -460,27 +481,27 @@ CRITICAL FORMAT RULES:
                     result = []
                     i = 0
                     while i < len(text):
-                        if text[i] == '\\':
+                        if text[i] == "\\":
                             if i + 1 < len(text):
                                 next_char = text[i + 1]
                                 # Valid escape sequences (single char)
-                                if next_char in ['\\', '"', '/', 'b', 'f', 'n', 'r', 't']:
-                                    result.append(text[i:i+2])
+                                if next_char in ["\\", '"', "/", "b", "f", "n", "r", "t"]:
+                                    result.append(text[i : i + 2])
                                     i += 2
                                 # Unicode escape sequence \uXXXX
-                                elif next_char == 'u' and i + 5 < len(text):
+                                elif next_char == "u" and i + 5 < len(text):
                                     # Check if it's a valid unicode escape
                                     try:
-                                        unicode_val = text[i+2:i+6]
+                                        unicode_val = text[i + 2 : i + 6]
                                         int(unicode_val, 16)  # Validate hex
-                                        result.append(text[i:i+6])
+                                        result.append(text[i : i + 6])
                                         i += 6
                                     except Exception:
                                         # Invalid unicode - remove backslash
                                         result.append(next_char)
                                         i += 2
                                 # Invalid escape - escape the backslash or remove it
-                                elif next_char in ['\'', '`']:
+                                elif next_char in ["'", "`"]:
                                     # Common issue: \' or \` in strings - just remove the backslash
                                     result.append(next_char)
                                     i += 2
@@ -494,7 +515,7 @@ CRITICAL FORMAT RULES:
                         else:
                             result.append(text[i])
                             i += 1
-                    return ''.join(result)
+                    return "".join(result)
 
                 content_fixed = fix_escapes(content_fixed)
 
@@ -509,20 +530,33 @@ CRITICAL FORMAT RULES:
                 pass
 
             # If all else fails, raise an error instead of returning fallback
-            raise Exception(f"Failed to parse AI response as JSON. The AI may have generated invalid JSON. Error: {str(e)[:200]}. Please try generating the guide again.") from e
+            raise Exception(
+                f"Failed to parse AI response as JSON. The AI may have generated invalid JSON. Error: {str(e)[:200]}. Please try generating the guide again."
+            ) from e
     except Exception as e:
         import traceback
+
         error_trace = traceback.format_exc()
         error_str = str(e)
 
         # Check for specific API errors
         if "insufficient_quota" in error_str or "429" in error_str or "quota" in error_str.lower():
             if AI_SERVICE == "openai":
-                raise Exception("OpenAI API quota exceeded. Switch to Gemini (free) by setting AI_SERVICE=gemini in .env and adding GEMINI_API_KEY") from e
+                raise Exception(
+                    "OpenAI API quota exceeded. Switch to Gemini (free) by setting AI_SERVICE=gemini in .env and adding GEMINI_API_KEY"
+                ) from e
             else:
-                raise Exception("API quota exceeded. Please check your API key and account status") from e
-        elif "invalid_api_key" in error_str.lower() or "incorrect api key" in error_str.lower() or ("api key" in error_str.lower() and "invalid" in error_str.lower()):
-            raise Exception(f"Invalid {AI_SERVICE.upper()} API key. Please check your API key in the .env file. Get a new key from https://aistudio.google.com/app/apikey") from e
+                raise Exception(
+                    "API quota exceeded. Please check your API key and account status"
+                ) from e
+        elif (
+            "invalid_api_key" in error_str.lower()
+            or "incorrect api key" in error_str.lower()
+            or ("api key" in error_str.lower() and "invalid" in error_str.lower())
+        ):
+            raise Exception(
+                f"Invalid {AI_SERVICE.upper()} API key. Please check your API key in the .env file. Get a new key from https://aistudio.google.com/app/apikey"
+            ) from e
         elif "rate_limit" in error_str:
             raise Exception("API rate limit exceeded. Please wait a moment and try again") from e
         else:
@@ -568,7 +602,7 @@ Format as a numbered list with clear actions."""
 
 {prompt}"""
                 response = ollama.generate(model=ollama_model_name, prompt=full_prompt)
-                return response['response']
+                return response["response"]
         elif AI_SERVICE == "gemini" and gemini_model:
             full_prompt = f"""You are an expert at creating detailed, beginner-friendly instructions.
 
@@ -581,19 +615,15 @@ Format as a numbered list with clear actions."""
                 messages=[
                     {
                         "role": "system",
-                        "content": "You are an expert at creating detailed, beginner-friendly instructions."
+                        "content": "You are an expert at creating detailed, beginner-friendly instructions.",
                     },
-                    {
-                        "role": "user",
-                        "content": prompt
-                    }
+                    {"role": "user", "content": prompt},
                 ],
                 temperature=0.7,
-                max_tokens=1000
+                max_tokens=1000,
             )
             return response.choices[0].message.content
         else:
             return f"1. {step_description}\n2. Follow the standard process for this type of task."
     except Exception:
         return f"1. {step_description}\n2. Follow the standard process for this type of task."
-

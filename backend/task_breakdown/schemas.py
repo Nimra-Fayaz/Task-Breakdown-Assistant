@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field
 
 class GuideStepBase(BaseModel):
     """Base schema for guide step."""
+
     step_number: int
     title: str
     description: str
@@ -22,11 +23,13 @@ class GuideStepBase(BaseModel):
 
 class GuideStepCreate(GuideStepBase):
     """Schema for creating a guide step."""
+
     pass
 
 
 class GuideStepResponse(GuideStepBase):
     """Schema for guide step response."""
+
     id: int
     task_id: int
     created_at: datetime
@@ -37,12 +40,14 @@ class GuideStepResponse(GuideStepBase):
 
 class TaskCreate(BaseModel):
     """Schema for creating a task."""
+
     description: str = Field(..., min_length=10, description="Task description")
     title: str | None = None
 
 
 class TaskResponse(BaseModel):
     """Schema for task response."""
+
     id: int
     title: str | None
     description: str
@@ -57,11 +62,13 @@ class TaskResponse(BaseModel):
 
 class TaskWithGuideResponse(TaskResponse):
     """Schema for task with guide steps."""
+
     guide_steps: list[GuideStepResponse] = []
 
 
 class RatingCreate(BaseModel):
     """Schema for creating a rating."""
+
     task_id: int
     rating: int = Field(..., ge=1, le=5, description="Rating from 1 to 5")
     comment: str | None = None
@@ -69,6 +76,7 @@ class RatingCreate(BaseModel):
 
 class RatingResponse(BaseModel):
     """Schema for rating response."""
+
     id: int
     task_id: int
     rating: int
@@ -81,8 +89,8 @@ class RatingResponse(BaseModel):
 
 class RatingStatsResponse(BaseModel):
     """Schema for rating statistics."""
+
     task_id: int
     average_rating: float
     total_ratings: int
     ratings: list[RatingResponse]
-

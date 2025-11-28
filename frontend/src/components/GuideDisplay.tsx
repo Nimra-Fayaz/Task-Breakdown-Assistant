@@ -36,7 +36,7 @@ function FormatInstructions({ instructions }: { instructions: string }) {
 
     lines.forEach((line, index) => {
       const trimmed = line.trim()
-      
+
       // Check if it's a numbered list item (1., 2., etc.)
       const numberedMatch = trimmed.match(/^(\d+)\.\s*(.+)$/)
       if (numberedMatch) {
@@ -77,7 +77,7 @@ function FormatInstructions({ instructions }: { instructions: string }) {
         const parts = trimmed.split(/(\*\*[^*]+\*\*)/g)
         formatted.push(
           <p key={`para-${index}`} className="instruction-paragraph">
-            {parts.map((part, i) => 
+            {parts.map((part, i) =>
               part.startsWith('**') && part.endsWith('**') ? (
                 <strong key={i}>{part.slice(2, -2)}</strong>
               ) : (
@@ -140,7 +140,7 @@ function GuideDisplay({ guide }: GuideDisplayProps) {
         fetch(`http://localhost:8000/api/ratings/${guide.id}`)
           .then(res => res.json())
           .then(data => setRatingStats(data))
-        
+
         setRating(0)
         setComment('')
         alert('Thank you for your rating!')
@@ -164,7 +164,7 @@ function GuideDisplay({ guide }: GuideDisplayProps) {
         <p style={{ color: '#666', marginTop: '8px', marginBottom: '16px' }}>
           {guide.description}
         </p>
-        
+
         <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
           <div>
             <strong>Complexity:</strong> {getComplexityStars(guide.complexity_score)} ({guide.complexity_score}/10)
@@ -297,4 +297,3 @@ function GuideDisplay({ guide }: GuideDisplayProps) {
 }
 
 export default GuideDisplay
-

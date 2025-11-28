@@ -18,7 +18,10 @@ app = FastAPI(
 # CORS middleware for frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000"],  # Vite and React default ports
+    allow_origins=[
+        "http://localhost:5173",
+        "http://localhost:3000",
+    ],  # Vite and React default ports
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -33,15 +36,10 @@ app.include_router(ratings.router, prefix="/api/ratings", tags=["ratings"])
 @app.get("/")
 async def root():
     """Root endpoint."""
-    return {
-        "message": "Task Breakdown Assistant API",
-        "version": "0.1.0",
-        "docs": "/docs"
-    }
+    return {"message": "Task Breakdown Assistant API", "version": "0.1.0", "docs": "/docs"}
 
 
 @app.get("/health")
 async def health():
     """Health check endpoint."""
     return {"status": "healthy"}
-

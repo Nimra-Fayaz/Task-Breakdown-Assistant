@@ -17,7 +17,12 @@ async def get_guide(task_id: int, db: Session = Depends(get_db)):
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
 
-    steps = db.query(GuideStep).filter(GuideStep.task_id == task_id).order_by(GuideStep.step_number).all()
+    steps = (
+        db.query(GuideStep)
+        .filter(GuideStep.task_id == task_id)
+        .order_by(GuideStep.step_number)
+        .all()
+    )
 
     return [
         GuideStepResponse(
@@ -34,8 +39,7 @@ async def get_guide(task_id: int, db: Session = Depends(get_db)):
             tips=step.tips,
             warnings=step.warnings,
             verification_steps=step.verification_steps,
-            created_at=step.created_at
+            created_at=step.created_at,
         )
         for step in steps
     ]
-

@@ -12,7 +12,7 @@ function App() {
   const handleTaskSubmit = async (description: string) => {
     setLoading(true)
     setError(null)
-    
+
     try {
       const response = await fetch('http://localhost:8000/api/tasks/', {
         method: 'POST',
@@ -51,7 +51,7 @@ function App() {
 
       <main className="container">
         <TaskInput onSubmit={handleTaskSubmit} loading={loading} />
-        
+
         {error && (
           <div className="card" style={{ background: '#fee', border: '1px solid #fcc' }}>
             <p style={{ color: '#c33' }}>Error: {error}</p>
@@ -76,4 +76,3 @@ function App() {
 }
 
 export default App
-

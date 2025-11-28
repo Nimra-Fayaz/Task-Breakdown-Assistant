@@ -62,4 +62,3 @@ class Rating(Base):
 
     # Relationships
     task = relationship("Task", back_populates="ratings")
-

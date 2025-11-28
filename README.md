@@ -115,12 +115,12 @@ cd task-breakdown-assistant
    ```bash
    # Windows PowerShell
    Copy-Item env.example .env
-   
+
    # Or manually create .env file
    ```
 
 4. **Configure environment variables:**
-   
+
    Open `.env` file in a text editor and add:
 
    **For Ollama (Recommended - FREE):**
@@ -403,14 +403,6 @@ cd frontend && npm install && npm run build
 
 Both commands are simple, standard, and fully automated.
 
-### README Documentation
-
-This README includes:
-- Clear build instructions
-- Clear test instructions
-- Clear run instructions
-- Complete project description
-
 ### Configuration Files
 
 **`pyproject.toml`** and **`package.json`** include:
@@ -420,15 +412,6 @@ This README includes:
 - Dependency specifications with versions
 - Build system configuration
 - Script definitions
-
-**Both files provide sufficient detail for external reviewers.**
-
-### Project Scope
-
-- **Non-trivial codebase**: Full-stack application with AI integration, database, REST API, and modern frontend
-- **External dependencies**: FastAPI, React, SQLAlchemy, Ollama, TypeScript, Vite, and many more
-- **Solves real problem**: Helps students and developers break down complex tasks into manageable steps
-- **Hosted on GitHub/GitLab**: Ready for submission (update repository URLs in config files)
 
 ## Project Structure
 

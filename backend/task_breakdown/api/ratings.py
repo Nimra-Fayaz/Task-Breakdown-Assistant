@@ -25,14 +25,12 @@ async def create_rating(rating: RatingCreate, db: Session = Depends(get_db)):
 
     # Validate rating
     if rating.rating < MIN_RATING or rating.rating > MAX_RATING:
-        raise HTTPException(status_code=400, detail=f"Rating must be between {MIN_RATING} and {MAX_RATING}")
+        raise HTTPException(
+            status_code=400, detail=f"Rating must be between {MIN_RATING} and {MAX_RATING}"
+        )
 
     # Create rating
-    db_rating = Rating(
-        task_id=rating.task_id,
-        rating=rating.rating,
-        comment=rating.comment
-    )
+    db_rating = Rating(task_id=rating.task_id, rating=rating.rating, comment=rating.comment)
     db.add(db_rating)
     db.commit()
     db.refresh(db_rating)
@@ -42,7 +40,7 @@ async def create_rating(rating: RatingCreate, db: Session = Depends(get_db)):
         task_id=db_rating.task_id,
         rating=db_rating.rating,
         comment=db_rating.comment,
-        created_at=db_rating.created_at
+        created_at=db_rating.created_at,
     )
 
 
@@ -58,12 +56,7 @@ async def get_ratings(task_id: int, db: Session = Depends(get_db)):
     ratings = db.query(Rating).filter(Rating.task_id == task_id).all()
 
     if not ratings:
-        return RatingStatsResponse(
-            task_id=task_id,
-            average_rating=0.0,
-            total_ratings=0,
-            ratings=[]
-        )
+        return RatingStatsResponse(task_id=task_id, average_rating=0.0, total_ratings=0, ratings=[])
 
     # Calculate average
     average = sum(r.rating for r in ratings) / len(ratings)
@@ -78,9 +71,8 @@ async def get_ratings(task_id: int, db: Session = Depends(get_db)):
                 task_id=r.task_id,
                 rating=r.rating,
                 comment=r.comment,
-                created_at=r.created_at
+                created_at=r.created_at,
             )
             for r in ratings
-        ]
+        ],
     )
-

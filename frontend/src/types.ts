@@ -40,4 +40,3 @@ export interface RatingStats {
   total_ratings: number
   ratings: Rating[]
 }
-

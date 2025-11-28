@@ -37,7 +37,7 @@ repos:
     hooks:
       - id: eslint
         name: eslint (linter)
-        entry: pwsh -Command "cd frontend; npm run lint"
+        entry: '"C:/Program Files/PowerShell/7/pwsh.exe" -Command "cd frontend; npm run lint"'
         language: system
         types: [file]
         files: ^frontend/.*\.(ts|tsx|js|jsx)$

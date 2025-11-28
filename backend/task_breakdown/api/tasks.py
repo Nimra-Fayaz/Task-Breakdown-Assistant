@@ -30,14 +30,16 @@ async def create_task(task: TaskCreate, db: Session = Depends(get_db)):
         # Generate breakdown using AI
         print(f"Generating breakdown for task: {task.description[:50]}...")  # Debug log
         breakdown = generate_task_breakdown(task.description)
-        print(f"Breakdown generated successfully: {len(breakdown.get('steps', []))} steps")  # Debug log
+        print(
+            f"Breakdown generated successfully: {len(breakdown.get('steps', []))} steps"
+        )  # Debug log
 
         # Create task
         db_task = Task(
             title=task.title or breakdown.get("title", "Untitled Task"),
             description=task.description,
             complexity_score=breakdown.get("complexity_score", 5),
-            estimated_total_time=breakdown.get("estimated_total_time")
+            estimated_total_time=breakdown.get("estimated_total_time"),
         )
         db.add(db_task)
         db.flush()  # Get the task ID
@@ -52,10 +54,10 @@ async def create_task(task: TaskCreate, db: Session = Depends(get_db)):
                 for snippet in code_snippets_raw:
                     if isinstance(snippet, dict):
                         # If it's a dict with 'code' key, extract the code
-                        if 'code' in snippet:
-                            code_snippets_normalized.append(str(snippet['code']))
-                        elif 'content' in snippet:
-                            code_snippets_normalized.append(str(snippet['content']))
+                        if "code" in snippet:
+                            code_snippets_normalized.append(str(snippet["code"]))
+                        elif "content" in snippet:
+                            code_snippets_normalized.append(str(snippet["content"]))
                         else:
                             # Convert entire dict to string representation
                             code_snippets_normalized.append(str(snippet))
@@ -76,7 +78,9 @@ async def create_task(task: TaskCreate, db: Session = Depends(get_db)):
                         dependencies_normalized.append(int(dep))
                     elif isinstance(dep, list | tuple) and len(dep) > 0:
                         # Handle nested lists
-                        dependencies_normalized.append(int(dep[0]) if isinstance(dep[0], int | str) else 0)
+                        dependencies_normalized.append(
+                            int(dep[0]) if isinstance(dep[0], int | str) else 0
+                        )
 
             # Normalize resources - ensure it's a list of strings
             resources_raw = step_data.get("resources", [])
@@ -85,8 +89,8 @@ async def create_task(task: TaskCreate, db: Session = Depends(get_db)):
                 for res in resources_raw:
                     if isinstance(res, str):
                         resources_normalized.append(res)
-                    elif isinstance(res, dict) and 'url' in res:
-                        resources_normalized.append(str(res['url']))
+                    elif isinstance(res, dict) and "url" in res:
+                        resources_normalized.append(str(res["url"]))
                     else:
                         resources_normalized.append(str(res))
 
@@ -95,14 +99,20 @@ async def create_task(task: TaskCreate, db: Session = Depends(get_db)):
                 step_number=int(step_data.get("step_number", 0)),
                 title=str(step_data.get("title", ""))[:255],  # Limit to 255 chars
                 description=str(step_data.get("description", "")),
-                detailed_instructions=str(step_data.get("detailed_instructions", "")) if step_data.get("detailed_instructions") else None,
-                estimated_time=int(step_data.get("estimated_time", 0)) if step_data.get("estimated_time") else None,
+                detailed_instructions=str(step_data.get("detailed_instructions", ""))
+                if step_data.get("detailed_instructions")
+                else None,
+                estimated_time=int(step_data.get("estimated_time", 0))
+                if step_data.get("estimated_time")
+                else None,
                 dependencies=dependencies_normalized if dependencies_normalized else None,
                 resources=resources_normalized if resources_normalized else None,
                 code_snippets=code_snippets_normalized if code_snippets_normalized else None,
                 tips=str(step_data.get("tips", "")) if step_data.get("tips") else None,
                 warnings=str(step_data.get("warnings", "")) if step_data.get("warnings") else None,
-                verification_steps=str(step_data.get("verification_steps", "")) if step_data.get("verification_steps") else None
+                verification_steps=str(step_data.get("verification_steps", ""))
+                if step_data.get("verification_steps")
+                else None,
             )
             db.add(db_step)
 
@@ -133,15 +143,16 @@ async def create_task(task: TaskCreate, db: Session = Depends(get_db)):
                     tips=step.tips,
                     warnings=step.warnings,
                     verification_steps=step.verification_steps,
-                    created_at=step.created_at
+                    created_at=step.created_at,
                 )
                 for step in db_task.guide_steps
-            ]
+            ],
         )
 
     except Exception as e:
         db.rollback()
         import traceback
+
         error_trace = traceback.format_exc()
         print(f"ERROR in create_task: {e!s}")  # Debug log
         print(f"Traceback: {error_trace}")  # Debug log
@@ -185,10 +196,10 @@ async def get_task(task_id: int, db: Session = Depends(get_db)):
                 tips=step.tips,
                 warnings=step.warnings,
                 verification_steps=step.verification_steps,
-                created_at=step.created_at
+                created_at=step.created_at,
             )
             for step in task.guide_steps
-        ]
+        ],
     )
 
 
@@ -201,4 +212,3 @@ async def delete_task(task_id: int, db: Session = Depends(get_db)):
 
     db.delete(task)
     db.commit()
-

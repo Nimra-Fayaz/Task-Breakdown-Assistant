@@ -21,7 +21,7 @@ function TaskInput({ onSubmit, loading }: TaskInputProps) {
       <p style={{ color: '#666', marginBottom: '20px' }}>
         Describe the task, assignment, or project you need help with. Our AI will break it down into detailed, beginner-friendly steps.
       </p>
-      
+
       <form onSubmit={handleSubmit}>
         <div className="input-group">
           <label htmlFor="task-description">Task Description</label>
@@ -52,4 +52,3 @@ function TaskInput({ onSubmit, loading }: TaskInputProps) {
 }
 
 export default TaskInput
-

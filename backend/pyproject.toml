@@ -44,4 +44,3 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
 start = "uvicorn task_breakdown.main:app --reload"
-
