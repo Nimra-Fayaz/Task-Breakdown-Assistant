@@ -1,9 +1,9 @@
 """Task API endpoints."""
 
-
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
+from task_breakdown.config.logging_config import get_logger
 from task_breakdown.database import get_db
 from task_breakdown.models import GuideStep, Task
 from task_breakdown.schemas import (
@@ -14,7 +14,12 @@ from task_breakdown.schemas import (
 )
 from task_breakdown.services.ai_service import generate_task_breakdown
 
+logger = get_logger(__name__)
 router = APIRouter()
+
+# Constants
+MAX_LIMIT = 1000
+MAX_PREVIEW_ITEMS = 5
 
 
 @router.post("", response_model=TaskWithGuideResponse, status_code=201)
@@ -28,13 +33,12 @@ async def create_task(task: TaskCreate, db: Session = Depends(get_db)):
     """
     try:
         # Generate breakdown using AI
-        print(f"Generating breakdown for task: {task.description[:50]}...")  # Debug log
+        logger.info(f"Generating breakdown for task: {task.description[:50]}...")
         breakdown = generate_task_breakdown(task.description)
-        print(
-            f"Breakdown generated successfully: {len(breakdown.get('steps', []))} steps"
-        )  # Debug log
+        logger.info(f"Breakdown generated successfully: {len(breakdown.get('steps', []))} steps")
 
         # Create task
+        logger.debug("Creating task in database")
         db_task = Task(
             title=task.title or breakdown.get("title", "Untitled Task"),
             description=task.description,
@@ -43,14 +47,25 @@ async def create_task(task: TaskCreate, db: Session = Depends(get_db)):
         )
         db.add(db_task)
         db.flush()  # Get the task ID
+        logger.debug(f"Task created with ID: {db_task.id}")
 
         # Create guide steps
         steps_data = breakdown.get("steps", [])
+        logger.debug(f"Creating {len(steps_data)} guide steps")
+        step_count = 0
         for step_data in steps_data:
+            step_count += 1
+            logger.debug(
+                f"Processing step {step_count}/{len(steps_data)}: {step_data.get('title', 'Untitled')[:50]}"
+            )
+
             # Normalize code_snippets - convert dicts to strings
             code_snippets_raw = step_data.get("code_snippets", [])
             code_snippets_normalized = []
             if code_snippets_raw:
+                logger.debug(
+                    f"Normalizing {len(code_snippets_raw)} code snippets for step {step_count}"
+                )
                 for snippet in code_snippets_raw:
                     if isinstance(snippet, dict):
                         # If it's a dict with 'code' key, extract the code
@@ -71,6 +86,9 @@ async def create_task(task: TaskCreate, db: Session = Depends(get_db)):
             dependencies_raw = step_data.get("dependencies", [])
             dependencies_normalized = []
             if dependencies_raw:
+                logger.debug(
+                    f"Normalizing {len(dependencies_raw)} dependencies for step {step_count}"
+                )
                 for dep in dependencies_raw:
                     if isinstance(dep, int):
                         dependencies_normalized.append(dep)
@@ -86,6 +104,7 @@ async def create_task(task: TaskCreate, db: Session = Depends(get_db)):
             resources_raw = step_data.get("resources", [])
             resources_normalized = []
             if resources_raw:
+                logger.debug(f"Normalizing {len(resources_raw)} resources for step {step_count}")
                 for res in resources_raw:
                     if isinstance(res, str):
                         resources_normalized.append(res)
@@ -115,9 +134,12 @@ async def create_task(task: TaskCreate, db: Session = Depends(get_db)):
                 else None,
             )
             db.add(db_step)
+            logger.debug(f"Step {step_count} added to database for task {db_task.id}")
 
+        logger.debug("Committing all guide steps to database")
         db.commit()
         db.refresh(db_task)
+        logger.info(f"Task {db_task.id} created successfully with {len(steps_data)} steps")
 
         # Return task with guide steps
         return TaskWithGuideResponse(
@@ -154,61 +176,115 @@ async def create_task(task: TaskCreate, db: Session = Depends(get_db)):
         import traceback
 
         error_trace = traceback.format_exc()
-        print(f"ERROR in create_task: {e!s}")  # Debug log
-        print(f"Traceback: {error_trace}")  # Debug log
+        logger.error(f"Error in create_task: {e!s}")
+        logger.debug(f"Full traceback: {error_trace}")
+        logger.warning("Task creation failed, database transaction rolled back")
+
+        # Check for critical errors
+        error_str = str(e).lower()
+        if "database" in error_str and ("connection" in error_str or "unavailable" in error_str):
+            logger.critical(f"Critical database connection error during task creation: {e!s}")
+        elif "ai service" in error_str or "api" in error_str:
+            logger.critical(f"Critical AI service error during task creation: {e!s}")
+
         raise HTTPException(status_code=500, detail=f"Error creating task: {e!s}") from e
 
 
 @router.get("/", response_model=list[TaskResponse])
 async def get_tasks(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     """Get all tasks."""
-    tasks = db.query(Task).offset(skip).limit(limit).all()
-    return tasks
+    logger.debug(f"Fetching tasks with skip={skip}, limit={limit}")
+    try:
+        if skip < 0:
+            logger.warning(f"Invalid skip value: {skip}, using 0 instead")
+            skip = 0
+        if limit < 0 or limit > MAX_LIMIT:
+            logger.warning(f"Invalid limit value: {limit}, clamping to valid range")
+            limit = min(max(limit, 1), MAX_LIMIT)
+
+        tasks = db.query(Task).offset(skip).limit(limit).all()
+        logger.info(f"Retrieved {len(tasks)} tasks")
+        logger.debug(
+            f"Task IDs retrieved: {[t.id for t in tasks[:MAX_PREVIEW_ITEMS]]}{'...' if len(tasks) > MAX_PREVIEW_ITEMS else ''}"
+        )
+        return tasks
+    except Exception as e:
+        logger.error(f"Error fetching tasks: {e}")
+        logger.critical("Critical database error while fetching tasks")
+        raise HTTPException(status_code=500, detail="Internal server error") from e
 
 
 @router.get("/{task_id}", response_model=TaskWithGuideResponse)
 async def get_task(task_id: int, db: Session = Depends(get_db)):
     """Get a specific task with its guide steps."""
-    task = db.query(Task).filter(Task.id == task_id).first()
-    if not task:
-        raise HTTPException(status_code=404, detail="Task not found")
+    logger.debug(f"Fetching task with ID: {task_id}")
+    try:
+        task = db.query(Task).filter(Task.id == task_id).first()
+        if not task:
+            logger.warning(f"Task {task_id} not found")
+            raise HTTPException(status_code=404, detail="Task not found")
 
-    return TaskWithGuideResponse(
-        id=task.id,
-        title=task.title,
-        description=task.description,
-        complexity_score=task.complexity_score,
-        estimated_total_time=task.estimated_total_time,
-        created_at=task.created_at,
-        updated_at=task.updated_at,
-        guide_steps=[
-            GuideStepResponse(
-                id=step.id,
-                task_id=step.task_id,
-                step_number=step.step_number,
-                title=step.title,
-                description=step.description,
-                detailed_instructions=step.detailed_instructions,
-                estimated_time=step.estimated_time,
-                dependencies=step.dependencies,
-                resources=step.resources,
-                code_snippets=step.code_snippets,
-                tips=step.tips,
-                warnings=step.warnings,
-                verification_steps=step.verification_steps,
-                created_at=step.created_at,
-            )
-            for step in task.guide_steps
-        ],
-    )
+        step_count = len(task.guide_steps) if hasattr(task, "guide_steps") else 0
+        logger.debug(f"Task {task_id} found with {step_count} guide steps")
+        logger.info(f"Task {task_id} retrieved successfully")
+
+        return TaskWithGuideResponse(
+            id=task.id,
+            title=task.title,
+            description=task.description,
+            complexity_score=task.complexity_score,
+            estimated_total_time=task.estimated_total_time,
+            created_at=task.created_at,
+            updated_at=task.updated_at,
+            guide_steps=[
+                GuideStepResponse(
+                    id=step.id,
+                    task_id=step.task_id,
+                    step_number=step.step_number,
+                    title=step.title,
+                    description=step.description,
+                    detailed_instructions=step.detailed_instructions,
+                    estimated_time=step.estimated_time,
+                    dependencies=step.dependencies,
+                    resources=step.resources,
+                    code_snippets=step.code_snippets,
+                    tips=step.tips,
+                    warnings=step.warnings,
+                    verification_steps=step.verification_steps,
+                    created_at=step.created_at,
+                )
+                for step in task.guide_steps
+            ],
+        )
+    except HTTPException:
+        # Re-raise HTTP exceptions without logging as error
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching task {task_id}: {e}")
+        logger.critical(f"Critical database error while fetching task {task_id}")
+        raise HTTPException(status_code=500, detail="Internal server error") from e
 
 
 @router.delete("/{task_id}", status_code=204)
 async def delete_task(task_id: int, db: Session = Depends(get_db)):
     """Delete a task and its guide steps."""
-    task = db.query(Task).filter(Task.id == task_id).first()
-    if not task:
-        raise HTTPException(status_code=404, detail="Task not found")
+    logger.debug(f"Attempting to delete task with ID: {task_id}")
+    try:
+        task = db.query(Task).filter(Task.id == task_id).first()
+        if not task:
+            logger.warning(f"Task {task_id} not found for deletion")
+            raise HTTPException(status_code=404, detail="Task not found")
 
-    db.delete(task)
-    db.commit()
+        logger.debug(f"Deleting task {task_id} and associated guide steps")
+        step_count = len(task.guide_steps) if hasattr(task, "guide_steps") else 0
+        db.delete(task)
+        db.commit()
+        logger.info(f"Task {task_id} deleted successfully (removed {step_count} guide steps)")
+    except HTTPException:
+        # Re-raise HTTP exceptions without logging as error
+        raise
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error deleting task {task_id}: {e}")
+        logger.critical(f"Critical database error while deleting task {task_id}")
+        raise HTTPException(status_code=500, detail="Internal server error") from e

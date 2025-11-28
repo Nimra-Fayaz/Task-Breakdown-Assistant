@@ -7,19 +7,35 @@ from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
+from task_breakdown.config.logging_config import get_logger
+
 load_dotenv()
+
+logger = get_logger(__name__)
 
 # Database URL from environment or default to SQLite
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./task_breakdown.db")
 
+logger.debug(
+    f"Database URL configured: {DATABASE_URL.split('@')[-1] if '@' in DATABASE_URL else DATABASE_URL}"
+)
+
 # Create engine
-if DATABASE_URL.startswith("sqlite"):
-    engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
-else:
-    engine = create_engine(DATABASE_URL)
+try:
+    if DATABASE_URL.startswith("sqlite"):
+        logger.debug("Creating SQLite database engine")
+        engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+    else:
+        logger.debug("Creating database engine (non-SQLite)")
+        engine = create_engine(DATABASE_URL)
+    logger.info("Database engine created successfully")
+except Exception as e:
+    logger.critical(f"Failed to create database engine: {e}")
+    raise
 
 # Session factory
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+logger.debug("Database session factory created")
 
 # Base class for models
 Base = declarative_base()
@@ -27,8 +43,22 @@ Base = declarative_base()
 
 def get_db():
     """Dependency for getting database session."""
+    logger.debug("Creating new database session")
     db = SessionLocal()
     try:
         yield db
+        logger.debug("Database session committed successfully")
+    except Exception as e:
+        error_str = str(e).lower()
+        # Check for critical database errors
+        if "connection" in error_str or "unavailable" in error_str or "timeout" in error_str:
+            logger.critical(f"Critical database connection error: {e}")
+        elif "integrity" in error_str or "constraint" in error_str:
+            logger.warning(f"Database integrity constraint violation: {e}")
+        else:
+            logger.error(f"Database session error: {e}")
+        db.rollback()
+        raise
     finally:
         db.close()
+        logger.debug("Database session closed")

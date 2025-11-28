@@ -6,7 +6,11 @@ import os
 import requests
 from dotenv import load_dotenv
 
+from task_breakdown.config.logging_config import get_logger
+
 load_dotenv()
+
+logger = get_logger(__name__)
 
 # Constants
 HTTP_OK = 200
@@ -53,17 +57,19 @@ def check_ollama_available():
                 model_names = [m.get("name", "") for m in models]
                 has_model = any("llama3.2" in name for name in model_names)
                 if has_model:
+                    logger.debug("Ollama model llama3.2 found and available")
                     return True, ollama
                 else:
-                    print("Warning: llama3.2 model not found. Run: ollama pull llama3.2")
+                    logger.warning("llama3.2 model not found. Run: ollama pull llama3.2")
                     return False, None
             else:
+                logger.debug("Ollama server responded with non-200 status code")
                 return False, None
         except requests.exceptions.RequestException as e:
-            print(f"Ollama server not accessible: {e}")
+            logger.error(f"Ollama server not accessible: {e}")
             return False, None
     except ImportError:
-        print("Warning: ollama Python package not installed. Run: poetry install")
+        logger.warning("ollama Python package not installed. Run: poetry install")
         return False, None
 
 
@@ -73,20 +79,22 @@ if AI_SERVICE == "ollama":
     if OLLAMA_AVAILABLE and ollama_module:
         ollama = ollama_module  # Make it available globally
         ollama_client = True
-        print(f"Ollama client initialized (using model: {ollama_model_name})")
+        logger.info(f"Ollama client initialized (using model: {ollama_model_name})")
     else:
         ollama_client = None
         if not OLLAMA_AVAILABLE:
-            print("Warning: ollama package not installed. Run: poetry install")
+            logger.warning("ollama package not installed. Run: poetry install")
         else:
-            print(
-                "Warning: Ollama server not running. Install from https://ollama.com and run: ollama serve"
+            logger.warning(
+                "Ollama server not running. Install from https://ollama.com and run: ollama serve"
             )
 elif AI_SERVICE == "openai" and OPENAI_AVAILABLE:
     openai_api_key = os.getenv("OPENAI_API_KEY")
     if openai_api_key:
         openai_client = OpenAI(api_key=openai_api_key)
-        print("OpenAI client initialized")
+        logger.info("OpenAI client initialized")
+    else:
+        logger.warning("OPENAI_API_KEY not found in environment variables")
 elif AI_SERVICE == "gemini" and GEMINI_AVAILABLE:
     gemini_api_key = os.getenv("GEMINI_API_KEY")
     if gemini_api_key:
@@ -95,18 +103,20 @@ elif AI_SERVICE == "gemini" and GEMINI_AVAILABLE:
             genai.configure(api_key=gemini_api_key)
             # Initialize model (using gemini-1.5-flash which is stable and free)
             gemini_model = genai.GenerativeModel("gemini-1.5-flash")
-            print(f"Gemini client initialized successfully (API key length: {len(gemini_api_key)})")
+            logger.info(
+                f"Gemini client initialized successfully (API key length: {len(gemini_api_key)})"
+            )
         except Exception as e:
-            print(f"Failed to initialize Gemini client: {e}")
+            logger.error(f"Failed to initialize Gemini client: {e}")
             gemini_model = None
     else:
-        print("GEMINI_API_KEY not found in environment variables")
+        logger.warning("GEMINI_API_KEY not found in environment variables")
         gemini_model = None
 else:
     if AI_SERVICE == "gemini" and not GEMINI_AVAILABLE:
-        print("Warning: google-generativeai package not installed. Run: poetry install")
+        logger.warning("google-generativeai package not installed. Run: poetry install")
     if AI_SERVICE == "ollama" and not OLLAMA_AVAILABLE:
-        print("Warning: ollama package not installed. Run: poetry add ollama")
+        logger.warning("ollama package not installed. Run: poetry add ollama")
 
 
 def generate_task_breakdown(task_description: str) -> dict:
@@ -119,6 +129,8 @@ def generate_task_breakdown(task_description: str) -> dict:
     Returns:
         Dictionary with task metadata and guide steps
     """
+    logger.info(f"Starting task breakdown generation for: {task_description[:100]}...")
+    logger.debug(f"Full task description length: {len(task_description)} characters")
 
     prompt = f"""You are an expert task breakdown assistant. Your job is to break down complex tasks into EXTREMELY DETAILED, beginner-friendly step-by-step guides. You handle BOTH software AND hardware/electronics tasks.
 
@@ -221,16 +233,19 @@ Provide your response as a JSON object with this exact structure:
 Make sure the detailed_instructions are extremely detailed and beginner-friendly. Assume the user knows nothing about programming or the tools involved."""
 
     try:
+        logger.debug(f"AI service configured: {AI_SERVICE}")
         # Use Ollama (local, free), Gemini (free tier), or OpenAI (paid) based on configuration
         # Re-check Ollama availability at runtime
         if AI_SERVICE == "ollama":
+            logger.debug("Checking Ollama availability at runtime")
             OLLAMA_AVAILABLE, ollama_module = check_ollama_available()
             if OLLAMA_AVAILABLE and ollama_module:
                 ollama = ollama_module
                 ollama_client = True
+                logger.debug("Ollama confirmed available at runtime")
 
         if AI_SERVICE == "ollama" and ollama_client:
-            print("Calling Ollama (local Llama) API...")  # Debug log
+            logger.debug("Calling Ollama (local Llama) API...")
             full_prompt = f"""You are an expert personal tutor who breaks down complex tasks into EXTREMELY DETAILED, beginner-friendly step-by-step guides.
 
 🚨 CRITICAL RULE - READ THIS FIRST:
@@ -300,35 +315,43 @@ CRITICAL FORMAT RULES:
                     options={"num_predict": 4000},  # Increased for better JSON generation
                 )
                 content = response["response"]
-                print("Ollama API call successful")  # Debug log
+                logger.info("Ollama API call successful")
             except Exception as ollama_error:
                 error_str = str(ollama_error)
-                print(f"Ollama error: {error_str}")
+                logger.error(f"Ollama error: {error_str}")
                 raise Exception(
                     f"Ollama API error: {error_str[:200]}. Make sure Ollama is running: install from https://ollama.com and run 'ollama serve'"
                 ) from ollama_error
 
         elif AI_SERVICE == "gemini" and gemini_model:
-            print("Calling Google Gemini API (free)...")  # Debug log
+            logger.debug("Calling Google Gemini API (free)...")
             full_prompt = f"""You are an expert personal tutor who breaks down complex tasks into EXTREMELY DETAILED, beginner-friendly step-by-step guides. You handle both software development tasks AND hardware/electronics tasks (like ESP32, Arduino, Raspberry Pi, sensors, LEDs, etc.). Your instructions should be like guiding someone in person - tell them WHERE to go (exact locations, menus, buttons), WHAT to do (specific actions, clicks, commands), HOW to do it (exact steps, keyboard shortcuts), WHAT to expect (exact output, visual confirmation), and HOW to verify (check this, see that). For hardware tasks, provide detailed wiring instructions with exact pin numbers, wire colors, physical locations on the board, component specifications, and physical setup steps. For software tasks, include OS-specific instructions (Windows/Mac/Linux), exact commands, file paths, and visual confirmations. Always assume the user knows NOTHING and needs to be told every single detail - like explaining to someone who has never used a computer before. Include visual descriptions, exact button locations, keyboard shortcuts, and what they should see at each step.
 
 {prompt}"""
 
             try:
+                logger.debug("Preparing Gemini request with model: gemini-1.5-flash")
+                logger.debug(f"Prompt length: {len(full_prompt)} characters")
                 # Use gemini-1.5-flash (stable and free)
                 response = gemini_model.generate_content(full_prompt)
                 content = response.text
-                print("Gemini API call successful")  # Debug log
+                logger.info("Gemini API call successful")
+                logger.debug(f"Response received, length: {len(content)} characters")
             except Exception as model_error:
                 # If model fails, try gemini-1.5-pro as fallback
                 error_str = str(model_error)
-                print(f"Model error: {error_str}. Trying gemini-1.5-pro...")
+                logger.warning(
+                    f"Gemini model error: {error_str}. Trying gemini-1.5-pro as fallback..."
+                )
+                logger.debug(f"Model error type: {type(model_error).__name__}")
 
                 try:
+                    logger.debug("Initializing fallback model: gemini-1.5-pro")
                     fallback_model = genai.GenerativeModel("gemini-1.5-pro")
                     response = fallback_model.generate_content(full_prompt)
                     content = response.text
-                    print("Gemini API call successful (using gemini-1.5-pro)")
+                    logger.info("Gemini API call successful (using gemini-1.5-pro)")
+                    logger.debug(f"Fallback response received, length: {len(content)} characters")
                 except Exception as fallback_error:
                     error_str = str(fallback_error)
                     # Check if it's an API key error
@@ -346,21 +369,29 @@ CRITICAL FORMAT RULES:
                     ) from fallback_error
 
         elif AI_SERVICE == "openai" and openai_client:
-            print("Calling OpenAI API...")  # Debug log
-            response = openai_client.chat.completions.create(
-                model="gpt-4o-mini",  # Using cheaper model, can upgrade to gpt-4 if needed
-                messages=[
-                    {
-                        "role": "system",
-                        "content": "You are an expert personal tutor who breaks down complex tasks into EXTREMELY DETAILED, beginner-friendly step-by-step guides. You handle both software development tasks AND hardware/electronics tasks (like ESP32, Arduino, Raspberry Pi, sensors, LEDs, etc.). Your instructions should be like guiding someone in person - tell them WHERE to go (exact locations, menus, buttons), WHAT to do (specific actions, clicks, commands), HOW to do it (exact steps, keyboard shortcuts), WHAT to expect (exact output, visual confirmation), and HOW to verify (check this, see that). For hardware tasks, provide detailed wiring instructions with exact pin numbers, wire colors, physical locations on the board, component specifications, and physical setup steps. For software tasks, include OS-specific instructions (Windows/Mac/Linux), exact commands, file paths, and visual confirmations. Always assume the user knows NOTHING and needs to be told every single detail - like explaining to someone who has never used a computer before. Include visual descriptions, exact button locations, keyboard shortcuts, and what they should see at each step.",
-                    },
-                    {"role": "user", "content": prompt},
-                ],
-                temperature=0.7,
-                max_tokens=4000,
-            )
-            print("OpenAI API call successful")  # Debug log
-            content = response.choices[0].message.content
+            logger.debug("Calling OpenAI API...")
+            logger.debug(f"Using model: gpt-4o-mini, prompt length: {len(prompt)} characters")
+            try:
+                response = openai_client.chat.completions.create(
+                    model="gpt-4o-mini",  # Using cheaper model, can upgrade to gpt-4 if needed
+                    messages=[
+                        {
+                            "role": "system",
+                            "content": "You are an expert personal tutor who breaks down complex tasks into EXTREMELY DETAILED, beginner-friendly step-by-step guides. You handle both software development tasks AND hardware/electronics tasks (like ESP32, Arduino, Raspberry Pi, sensors, LEDs, etc.). Your instructions should be like guiding someone in person - tell them WHERE to go (exact locations, menus, buttons), WHAT to do (specific actions, clicks, commands), HOW to do it (exact steps, keyboard shortcuts), WHAT to expect (exact output, visual confirmation), and HOW to verify (check this, see that). For hardware tasks, provide detailed wiring instructions with exact pin numbers, wire colors, physical locations on the board, component specifications, and physical setup steps. For software tasks, include OS-specific instructions (Windows/Mac/Linux), exact commands, file paths, and visual confirmations. Always assume the user knows NOTHING and needs to be told every single detail - like explaining to someone who has never used a computer before. Include visual descriptions, exact button locations, keyboard shortcuts, and what they should see at each step.",
+                        },
+                        {"role": "user", "content": prompt},
+                    ],
+                    temperature=0.7,
+                    max_tokens=4000,
+                )
+                logger.info("OpenAI API call successful")
+                content = response.choices[0].message.content
+                logger.debug(f"Response received, length: {len(content)} characters")
+            except Exception as openai_error:
+                error_str = str(openai_error)
+                logger.error(f"OpenAI API call failed: {error_str}")
+                logger.debug(f"OpenAI error type: {type(openai_error).__name__}")
+                raise
         else:
             # Provide detailed error message with installation instructions
             error_details = []
@@ -392,16 +423,21 @@ CRITICAL FORMAT RULES:
                     error_details.append(
                         "google-generativeai package not installed (run: poetry install)"
                     )
+                    logger.warning("Google GenerativeAI package not installed")
                 if not os.getenv("GEMINI_API_KEY"):
                     error_details.append("GEMINI_API_KEY not found in .env file")
+                    logger.warning("GEMINI_API_KEY not found in environment")
                     installation_help = "\n\n📋 TO FIX: Get free API key from https://aistudio.google.com/app/apikey and add to .env"
                 if GEMINI_AVAILABLE and os.getenv("GEMINI_API_KEY") and not gemini_model:
                     error_details.append("Failed to initialize Gemini model (check API key)")
+                    logger.error("Gemini model initialization failed despite API key presence")
             elif AI_SERVICE == "openai":
                 if not OPENAI_AVAILABLE:
                     error_details.append("openai package not installed")
+                    logger.warning("OpenAI package not installed")
                 if not os.getenv("OPENAI_API_KEY"):
                     error_details.append("OPENAI_API_KEY not found in .env file")
+                    logger.warning("OPENAI_API_KEY not found in environment")
                     installation_help = "\n\n📋 TO FIX: Get API key from https://platform.openai.com/api-keys and add to .env"
 
             error_msg = "No AI service configured. "
@@ -412,43 +448,54 @@ CRITICAL FORMAT RULES:
 
             error_msg += installation_help
 
+            logger.critical(f"AI service configuration error: {error_msg}")
             raise Exception(error_msg)
 
         # Try to extract JSON from the response
         # Sometimes AI wraps JSON in markdown code blocks
+        logger.debug("Extracting JSON from AI response")
         original_content = content
+        logger.debug(f"Original content length: {len(original_content)} characters")
 
         # Remove markdown code blocks
         if "```json" in content:
+            logger.debug("Found JSON code block marker, extracting JSON")
             content = content.split("```json")[1].split("```")[0].strip()
         elif "```" in content:
+            logger.debug("Found code block markers, searching for JSON")
             # Try to find JSON between code blocks
             parts = content.split("```")
             for part in parts:
                 part_stripped = part.strip()
                 if part_stripped.startswith("{") and "title" in part_stripped:
                     content = part_stripped
+                    logger.debug("Found JSON in code block")
                     break
             else:
                 # If no JSON found, try the first part that looks like JSON
+                logger.debug("Searching for JSON-like content")
                 for part in parts:
                     part_stripped = part.strip()
                     if part_stripped.startswith("{"):
                         content = part_stripped
+                        logger.debug("Found JSON-like content")
                         break
 
         # Try to find JSON object in the content
         if not content.startswith("{"):
+            logger.debug("Content doesn't start with '{', searching for JSON boundaries")
             # Find the first { and last }
             start_idx = content.find("{")
             end_idx = content.rfind("}")
             if start_idx != -1 and end_idx != -1 and end_idx > start_idx:
                 content = content[start_idx : end_idx + 1]
+                logger.debug(f"Extracted JSON substring from position {start_idx} to {end_idx}")
 
         # Clean up common issues
         content = content.strip()
         # Remove any leading/trailing whitespace or newlines
         content = content.lstrip().rstrip()
+        logger.debug(f"Cleaned content length: {len(content)} characters")
 
         # Try to parse JSON
         try:
@@ -456,11 +503,14 @@ CRITICAL FORMAT RULES:
             # Validate the result has required fields
             if "title" not in result or "steps" not in result:
                 raise json.JSONDecodeError("Missing required fields", content, 0)
+            logger.debug(
+                f"Successfully parsed JSON response with {len(result.get('steps', []))} steps"
+            )
             return result
         except json.JSONDecodeError as e:
-            print(f"JSON decode error: {e!s}")  # Debug log
-            print(f"Response content (first 1000 chars): {original_content[:1000]}")  # Debug log
-            print(f"Extracted content (first 500 chars): {content[:500]}")  # Debug log
+            logger.debug(f"JSON decode error: {e!s}")
+            logger.debug(f"Response content (first 1000 chars): {original_content[:1000]}")
+            logger.debug(f"Extracted content (first 500 chars): {content[:500]}")
 
             # Try to fix common JSON issues and retry
             try:
@@ -523,10 +573,10 @@ CRITICAL FORMAT RULES:
                 result = json.loads(content_fixed)
                 if "title" not in result or "steps" not in result:
                     raise json.JSONDecodeError("Missing required fields", content_fixed, 0)
-                print("✅ JSON fixed and parsed successfully!")
+                logger.info("JSON fixed and parsed successfully after error correction")
                 return result
             except Exception as fix_error:
-                print(f"JSON fix attempt failed: {str(fix_error)[:200]}")
+                logger.warning(f"JSON fix attempt failed: {str(fix_error)[:200]}")
                 pass
 
             # If all else fails, raise an error instead of returning fallback
@@ -541,6 +591,7 @@ CRITICAL FORMAT RULES:
 
         # Check for specific API errors
         if "insufficient_quota" in error_str or "429" in error_str or "quota" in error_str.lower():
+            logger.critical("API quota exceeded - service unavailable")
             if AI_SERVICE == "openai":
                 raise Exception(
                     "OpenAI API quota exceeded. Switch to Gemini (free) by setting AI_SERVICE=gemini in .env and adding GEMINI_API_KEY"
@@ -554,14 +605,16 @@ CRITICAL FORMAT RULES:
             or "incorrect api key" in error_str.lower()
             or ("api key" in error_str.lower() and "invalid" in error_str.lower())
         ):
+            logger.critical(f"Invalid {AI_SERVICE.upper()} API key detected")
             raise Exception(
                 f"Invalid {AI_SERVICE.upper()} API key. Please check your API key in the .env file. Get a new key from https://aistudio.google.com/app/apikey"
             ) from e
         elif "rate_limit" in error_str:
+            logger.warning("API rate limit exceeded")
             raise Exception("API rate limit exceeded. Please wait a moment and try again") from e
         else:
-            print(f"ERROR in generate_task_breakdown: {error_str}")  # Debug log
-            print(f"Traceback: {error_trace}")  # Debug log
+            logger.error(f"Error in generate_task_breakdown: {error_str}")
+            logger.debug(f"Traceback: {error_trace}")
             raise Exception(f"Error generating task breakdown: {error_str}") from e
 
 
