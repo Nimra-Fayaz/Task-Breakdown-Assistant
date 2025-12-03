@@ -48,15 +48,14 @@ def get_db():
         yield db
         logger.debug("Database session committed successfully")
     except Exception as e:
-        error_str = str(e).lower()
-        # Check for critical database errors
-        if "connection" in error_str or "unavailable" in error_str or "timeout" in error_str:
-            logger.critical(f"Critical database connection error: {e}")
-        elif "integrity" in error_str or "constraint" in error_str:
-            logger.warning(f"Database integrity constraint violation: {e}")
-        else:
-            logger.error(f"Database session error: {e}")
+        logger.error(f"Database session error: {e}")
         db.rollback()
+        # Check for specific critical database errors
+        error_str = str(e).lower()
+        if "connection" in error_str or "unavailable" in error_str:
+            logger.critical(f"Critical database connection error: {e}")
+        elif "integrity constraint" in error_str:
+            logger.warning(f"Database integrity constraint violation: {e}")
         raise
     finally:
         db.close()
