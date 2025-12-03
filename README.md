@@ -440,6 +440,10 @@ Both commands are simple, standard, and fully automated.
 └── BUILD.md               # Detailed build instructions
 ```
 
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
 ## Author
 
 Nimra Fayaz
