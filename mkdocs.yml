@@ -1,0 +1,99 @@
+site_name: Task Breakdown Assistant
+site_description: AI-powered task breakdown assistant with beginner-friendly detailed guides
+site_author: Nimra Fayaz
+site_url: https://nimra-fayaz.github.io/Task-Breakdown-Assistant/
+
+repo_name: Nimra-Fayaz/Task-Breakdown-Assistant
+repo_url: https://github.com/Nimra-Fayaz/Task-Breakdown-Assistant
+edit_uri: edit/main/docs/
+
+copyright: Copyright &copy; 2025 Nimra Fayaz
+
+docs_dir: docs
+site_dir: site
+
+theme:
+  name: material
+
+  palette:
+    - scheme: default
+      primary: blue
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+
+    - scheme: slate
+      primary: blue
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.code.annotate
+
+nav:
+  - Home: index.md
+  - Documentation: DOCUMENTATION.md
+  - Tutorials:
+      - Getting Started: tutorials/tutorial.md
+  - About:
+      - License: ../LICENSE
+      - Build Instructions: ../BUILD.md
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - meta
+  - toc:
+      permalink: true
+      toc_depth: 3
+
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.betterem
+  - pymdownx.caret
+  - pymdownx.mark
+  - pymdownx.tilde
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.keys
+  - pymdownx.smartsymbols
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+
+plugins:
+  - search:
+      lang: en
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/Nimra-Fayaz/Task-Breakdown-Assistant
+      name: GitHub Repository

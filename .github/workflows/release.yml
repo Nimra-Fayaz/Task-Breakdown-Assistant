@@ -1,0 +1,221 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  test:
+    name: Test Before Release (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: true
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install Poetry
+        run: |
+          curl -sSL https://install.python-poetry.org | python3 -
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Cache Poetry dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pypoetry
+          key: ${{ runner.os }}-poetry-${{ matrix.python-version }}-${{ hashFiles('backend/poetry.lock') }}
+
+      - name: Install dependencies
+        working-directory: ./backend
+        run: poetry install --no-interaction --no-root
+
+      - name: Run pytest tests
+        working-directory: ./backend
+        run: poetry run pytest -v
+
+  build-backend:
+    name: Build Backend Package
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Poetry
+        run: |
+          curl -sSL https://install.python-poetry.org | python3 -
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Build package with Poetry
+        working-directory: ./backend
+        run: |
+          poetry build
+          echo "Built packages:"
+          ls -lh dist/
+
+      - name: Upload backend artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-dist
+          path: backend/dist/*
+          retention-days: 1
+
+  build-frontend:
+    name: Build Frontend
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Build frontend
+        working-directory: ./frontend
+        run: |
+          npm run build
+          echo "Frontend build complete"
+          ls -lh dist/
+
+      - name: Create frontend archive
+        working-directory: ./frontend
+        run: |
+          cd dist
+          zip -r ../frontend-dist.zip .
+          cd ..
+          echo "Created frontend-dist.zip"
+          ls -lh frontend-dist.zip
+
+      - name: Upload frontend artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/frontend-dist.zip
+          retention-days: 1
+
+  create-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: [test, build-backend, build-frontend]
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download backend artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: backend-dist
+          path: ./release-artifacts/backend
+
+      - name: Download frontend artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: ./release-artifacts/frontend
+
+      - name: List all artifacts
+        run: |
+          echo "Release artifacts:"
+          find ./release-artifacts -type f -exec ls -lh {} \;
+
+      - name: Generate Changelog
+        id: changelog
+        run: |
+          wget -q https://github.com/orhun/git-cliff/releases/download/v2.7.0/git-cliff-2.7.0-x86_64-unknown-linux-gnu.tar.gz
+          tar -xzf git-cliff-2.7.0-x86_64-unknown-linux-gnu.tar.gz
+          chmod +x git-cliff-2.7.0/git-cliff
+
+          PREVIOUS_TAG=$(git tag --sort=-version:refname | grep -v "^${{ github.ref_name }}$" | head -n1)
+
+          if [ -z "$PREVIOUS_TAG" ]; then
+            echo "No previous tag found, generating changelog from beginning"
+            CHANGELOG=$(./git-cliff-2.7.0/git-cliff --current --strip all)
+          else
+            echo "Generating changelog from $PREVIOUS_TAG to ${{ github.ref_name }}"
+            CHANGELOG=$(./git-cliff-2.7.0/git-cliff --current --strip all)
+          fi
+
+          echo "$CHANGELOG" > CHANGELOG.md
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGELOG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+          echo "Generated changelog:"
+          cat CHANGELOG.md
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Release ${{ github.ref_name }}
+          body: |
+            # Release ${{ github.ref_name }}
+
+            ## Downloads
+
+            ### Backend (Python Package)
+            - **Wheel Package** (.whl): Install with `pip install <filename>.whl`
+            - **Source Distribution** (.tar.gz): For source installation
+
+            ### Frontend (Web Application)
+            - **Frontend Build** (frontend-dist.zip): Static files for deployment
+
+            ## What's Changed
+
+            ${{ steps.changelog.outputs.changelog }}
+
+            ## Installation
+
+            **Backend:**
+            ```bash
+            pip install task_breakdown_assistant-*.whl
+            ```
+
+            **Frontend:**
+            ```bash
+            unzip frontend-dist.zip -d /var/www/html/
+            ```
+
+            ## Documentation
+            Visit https://nimra-fayaz.github.io/Task-Breakdown-Assistant/
+
+            ---
+            **Full Changelog**: https://github.com/${{ github.repository }}/compare/${{ github.ref_name }}...HEAD
+
+          files: |
+            release-artifacts/backend/*
+            release-artifacts/frontend/*
+
+          draft: false
+          prerelease: false
+          generate_release_notes: true
