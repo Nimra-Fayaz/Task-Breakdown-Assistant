@@ -35,7 +35,9 @@ async def create_task(task: TaskCreate, db: Session = Depends(get_db)):
         # Generate breakdown using AI
         logger.info(f"Generating breakdown for task: {task.description[:50]}...")
         breakdown = generate_task_breakdown(task.description)
-        logger.info(f"Breakdown generated successfully: {len(breakdown.get('steps', []))} steps")
+        logger.info(
+            f"Breakdown generated successfully: {len(breakdown.get('steps', []))} steps"
+        )
 
         # Create task
         logger.debug("Creating task in database")
@@ -104,7 +106,9 @@ async def create_task(task: TaskCreate, db: Session = Depends(get_db)):
             resources_raw = step_data.get("resources", [])
             resources_normalized = []
             if resources_raw:
-                logger.debug(f"Normalizing {len(resources_raw)} resources for step {step_count}")
+                logger.debug(
+                    f"Normalizing {len(resources_raw)} resources for step {step_count}"
+                )
                 for res in resources_raw:
                     if isinstance(res, str):
                         resources_normalized.append(res)
@@ -124,11 +128,17 @@ async def create_task(task: TaskCreate, db: Session = Depends(get_db)):
                 estimated_time=int(step_data.get("estimated_time", 0))
                 if step_data.get("estimated_time")
                 else None,
-                dependencies=dependencies_normalized if dependencies_normalized else None,
+                dependencies=dependencies_normalized
+                if dependencies_normalized
+                else None,
                 resources=resources_normalized if resources_normalized else None,
-                code_snippets=code_snippets_normalized if code_snippets_normalized else None,
+                code_snippets=code_snippets_normalized
+                if code_snippets_normalized
+                else None,
                 tips=str(step_data.get("tips", "")) if step_data.get("tips") else None,
-                warnings=str(step_data.get("warnings", "")) if step_data.get("warnings") else None,
+                warnings=str(step_data.get("warnings", ""))
+                if step_data.get("warnings")
+                else None,
                 verification_steps=str(step_data.get("verification_steps", ""))
                 if step_data.get("verification_steps")
                 else None,
@@ -139,7 +149,9 @@ async def create_task(task: TaskCreate, db: Session = Depends(get_db)):
         logger.debug("Committing all guide steps to database")
         db.commit()
         db.refresh(db_task)
-        logger.info(f"Task {db_task.id} created successfully with {len(steps_data)} steps")
+        logger.info(
+            f"Task {db_task.id} created successfully with {len(steps_data)} steps"
+        )
 
         # Return task with guide steps
         return TaskWithGuideResponse(
@@ -182,12 +194,18 @@ async def create_task(task: TaskCreate, db: Session = Depends(get_db)):
 
         # Check for critical errors
         error_str = str(e).lower()
-        if "database" in error_str and ("connection" in error_str or "unavailable" in error_str):
-            logger.critical(f"Critical database connection error during task creation: {e!s}")
+        if "database" in error_str and (
+            "connection" in error_str or "unavailable" in error_str
+        ):
+            logger.critical(
+                f"Critical database connection error during task creation: {e!s}"
+            )
         elif "ai service" in error_str or "api" in error_str:
             logger.critical(f"Critical AI service error during task creation: {e!s}")
 
-        raise HTTPException(status_code=500, detail=f"Error creating task: {e!s}") from e
+        raise HTTPException(
+            status_code=500, detail=f"Error creating task: {e!s}"
+        ) from e
 
 
 @router.get("/", response_model=list[TaskResponse])
@@ -279,7 +297,9 @@ async def delete_task(task_id: int, db: Session = Depends(get_db)):
         step_count = len(task.guide_steps) if hasattr(task, "guide_steps") else 0
         db.delete(task)
         db.commit()
-        logger.info(f"Task {task_id} deleted successfully (removed {step_count} guide steps)")
+        logger.info(
+            f"Task {task_id} deleted successfully (removed {step_count} guide steps)"
+        )
     except HTTPException:
         # Re-raise HTTP exceptions without logging as error
         raise

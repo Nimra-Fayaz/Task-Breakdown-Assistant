@@ -19,7 +19,9 @@ MIN_RATING = 1
 @router.post("/", response_model=RatingResponse, status_code=201)
 async def create_rating(rating: RatingCreate, db: Session = Depends(get_db)):
     """Create a rating for a task guide."""
-    logger.debug(f"Creating rating for task {rating.task_id} with rating {rating.rating}")
+    logger.debug(
+        f"Creating rating for task {rating.task_id} with rating {rating.rating}"
+    )
     try:
         # Verify task exists
         task = db.query(Task).filter(Task.id == rating.task_id).first()
@@ -41,12 +43,16 @@ async def create_rating(rating: RatingCreate, db: Session = Depends(get_db)):
         logger.debug(
             f"Creating rating object: task_id={rating.task_id}, rating={rating.rating}, has_comment={bool(rating.comment)}"
         )
-        db_rating = Rating(task_id=rating.task_id, rating=rating.rating, comment=rating.comment)
+        db_rating = Rating(
+            task_id=rating.task_id, rating=rating.rating, comment=rating.comment
+        )
         db.add(db_rating)
         logger.debug("Rating added to database session, committing...")
         db.commit()
         db.refresh(db_rating)
-        logger.info(f"Rating {db_rating.id} created successfully for task {rating.task_id}")
+        logger.info(
+            f"Rating {db_rating.id} created successfully for task {rating.task_id}"
+        )
 
         return RatingResponse(
             id=db_rating.id,
@@ -61,7 +67,9 @@ async def create_rating(rating: RatingCreate, db: Session = Depends(get_db)):
     except Exception as e:
         db.rollback()
         logger.error(f"Error creating rating for task {rating.task_id}: {e}")
-        logger.critical(f"Critical database error while creating rating for task {rating.task_id}")
+        logger.critical(
+            f"Critical database error while creating rating for task {rating.task_id}"
+        )
         raise HTTPException(status_code=500, detail="Internal server error") from e
 
 
@@ -94,7 +102,9 @@ async def get_ratings(task_id: int, db: Session = Depends(get_db)):
         for r in ratings:
             rating_distribution[r.rating] = rating_distribution.get(r.rating, 0) + 1
         logger.debug(f"Rating distribution: {rating_distribution}")
-        logger.info(f"Retrieved {len(ratings)} ratings for task {task_id}, average: {average:.2f}")
+        logger.info(
+            f"Retrieved {len(ratings)} ratings for task {task_id}, average: {average:.2f}"
+        )
 
         return RatingStatsResponse(
             task_id=task_id,
@@ -116,5 +126,7 @@ async def get_ratings(task_id: int, db: Session = Depends(get_db)):
         raise
     except Exception as e:
         logger.error(f"Error fetching ratings for task {task_id}: {e}")
-        logger.critical(f"Critical database error while fetching ratings for task {task_id}")
+        logger.critical(
+            f"Critical database error while fetching ratings for task {task_id}"
+        )
         raise HTTPException(status_code=500, detail="Internal server error") from e

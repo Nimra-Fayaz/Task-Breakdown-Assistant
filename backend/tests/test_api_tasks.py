@@ -36,7 +36,9 @@ class TestCreateTask:
         """Test task creation without title (should use AI-generated title)."""
         mock_generate.return_value = sample_breakdown_data
 
-        response = client.post("/api/tasks", json={"description": "Create a hello world program"})
+        response = client.post(
+            "/api/tasks", json={"description": "Create a hello world program"}
+        )
 
         assert response.status_code == 201
         assert response.json()["title"] == "Test Task"
@@ -46,7 +48,9 @@ class TestCreateTask:
         """Test handling of AI service errors."""
         mock_generate.side_effect = Exception("AI service unavailable")
 
-        response = client.post("/api/tasks", json={"description": "Create a hello world program"})
+        response = client.post(
+            "/api/tasks", json={"description": "Create a hello world program"}
+        )
 
         assert response.status_code == 500
         assert "Error creating task" in response.json()["detail"]
@@ -92,7 +96,9 @@ class TestGetTasks:
         mock_generate.return_value = sample_breakdown_data
 
         # Create a task first
-        client.post("/api/tasks", json={"title": "Test Task", "description": "Test description"})
+        client.post(
+            "/api/tasks", json={"title": "Test Task", "description": "Test description"}
+        )
 
         # Get all tasks
         response = client.get("/api/tasks/")
@@ -130,7 +136,9 @@ class TestGetTasks:
         mock_generate.return_value = sample_breakdown_data
 
         # Create a task
-        client.post("/api/tasks", json={"title": "Test Task", "description": "Test description"})
+        client.post(
+            "/api/tasks", json={"title": "Test Task", "description": "Test description"}
+        )
 
         # Request with limit exceeding MAX_LIMIT
         response = client.get(f"/api/tasks/?skip=0&limit={MAX_LIMIT + 100}")
@@ -149,7 +157,9 @@ class TestGetTask:
     """Tests for GET /api/tasks/{task_id} endpoint."""
 
     @patch("task_breakdown.api.tasks.generate_task_breakdown")
-    def test_get_task_success(self, mock_generate, client, setup_database, sample_breakdown_data):
+    def test_get_task_success(
+        self, mock_generate, client, setup_database, sample_breakdown_data
+    ):
         """Test getting a specific task."""
         mock_generate.return_value = sample_breakdown_data
 

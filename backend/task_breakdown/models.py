@@ -21,8 +21,12 @@ class Task(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     # Relationships
-    guide_steps = relationship("GuideStep", back_populates="task", cascade="all, delete-orphan")
-    ratings = relationship("Rating", back_populates="task", cascade="all, delete-orphan")
+    guide_steps = relationship(
+        "GuideStep", back_populates="task", cascade="all, delete-orphan"
+    )
+    ratings = relationship(
+        "Rating", back_populates="task", cascade="all, delete-orphan"
+    )
 
 
 class GuideStep(Base):

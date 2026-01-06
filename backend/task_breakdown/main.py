@@ -86,5 +86,7 @@ async def health():
         return {"status": "healthy"}
     except Exception as e:
         logger.error(f"Health check failed: {e}")
-        logger.critical("Critical: Health check failed - database connection unavailable")
+        logger.critical(
+            "Critical: Health check failed - database connection unavailable"
+        )
         return {"status": "unhealthy", "error": str(e)}, 503

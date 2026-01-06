@@ -83,7 +83,9 @@ class TestCreateRating:
         assert response.status_code == 422  # Pydantic validation error
         # Check that validation error mentions rating constraint
         error_detail = str(response.json())
-        assert "rating" in error_detail.lower() or "greater than" in error_detail.lower()
+        assert (
+            "rating" in error_detail.lower() or "greater than" in error_detail.lower()
+        )
 
     @patch("task_breakdown.api.tasks.generate_task_breakdown")
     def test_create_rating_invalid_value_too_low(
@@ -129,7 +131,9 @@ class TestGetRatings:
     """Tests for GET /api/ratings/{task_id} endpoint."""
 
     @patch("task_breakdown.api.tasks.generate_task_breakdown")
-    def test_get_ratings_empty(self, mock_generate, client, setup_database, sample_breakdown_data):
+    def test_get_ratings_empty(
+        self, mock_generate, client, setup_database, sample_breakdown_data
+    ):
         """Test getting ratings when task has no ratings."""
         mock_generate.return_value = sample_breakdown_data
 

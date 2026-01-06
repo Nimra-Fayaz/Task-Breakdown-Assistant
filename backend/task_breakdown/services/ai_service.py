@@ -33,7 +33,9 @@ except ImportError:
 
 # Determine which AI service to use
 # Options: "ollama" (local, free), "gemini" (free tier), "openai" (paid)
-AI_SERVICE = os.getenv("AI_SERVICE", "ollama").lower()  # Default to Ollama (local, free)
+AI_SERVICE = os.getenv(
+    "AI_SERVICE", "ollama"
+).lower()  # Default to Ollama (local, free)
 
 # Initialize clients
 openai_client = None
@@ -60,7 +62,9 @@ def check_ollama_available():
                     logger.debug("Ollama model llama3.2 found and available")
                     return True, ollama
                 else:
-                    logger.warning("llama3.2 model not found. Run: ollama pull llama3.2")
+                    logger.warning(
+                        "llama3.2 model not found. Run: ollama pull llama3.2"
+                    )
                     return False, None
             else:
                 logger.debug("Ollama server responded with non-200 status code")
@@ -312,7 +316,9 @@ CRITICAL FORMAT RULES:
                 response = ollama.generate(
                     model=ollama_model_name,
                     prompt=full_prompt,
-                    options={"num_predict": 4000},  # Increased for better JSON generation
+                    options={
+                        "num_predict": 4000
+                    },  # Increased for better JSON generation
                 )
                 content = response["response"]
                 logger.info("Ollama API call successful")
@@ -351,7 +357,9 @@ CRITICAL FORMAT RULES:
                     response = fallback_model.generate_content(full_prompt)
                     content = response.text
                     logger.info("Gemini API call successful (using gemini-1.5-pro)")
-                    logger.debug(f"Fallback response received, length: {len(content)} characters")
+                    logger.debug(
+                        f"Fallback response received, length: {len(content)} characters"
+                    )
                 except Exception as fallback_error:
                     error_str = str(fallback_error)
                     # Check if it's an API key error
@@ -370,7 +378,9 @@ CRITICAL FORMAT RULES:
 
         elif AI_SERVICE == "openai" and openai_client:
             logger.debug("Calling OpenAI API...")
-            logger.debug(f"Using model: gpt-4o-mini, prompt length: {len(prompt)} characters")
+            logger.debug(
+                f"Using model: gpt-4o-mini, prompt length: {len(prompt)} characters"
+            )
             try:
                 response = openai_client.chat.completions.create(
                     model="gpt-4o-mini",  # Using cheaper model, can upgrade to gpt-4 if needed
@@ -415,7 +425,9 @@ CRITICAL FORMAT RULES:
                             "\n\n📋 TO FIX: Run 'poetry install' in the backend folder"
                         )
                 else:
-                    error_details.append("Ollama initialization failed (check server logs)")
+                    error_details.append(
+                        "Ollama initialization failed (check server logs)"
+                    )
                     installation_help = "\n\n📋 TO FIX: Check that Ollama server is running and llama3.2 model is downloaded"
 
             elif AI_SERVICE == "gemini":
@@ -428,9 +440,17 @@ CRITICAL FORMAT RULES:
                     error_details.append("GEMINI_API_KEY not found in .env file")
                     logger.warning("GEMINI_API_KEY not found in environment")
                     installation_help = "\n\n📋 TO FIX: Get free API key from https://aistudio.google.com/app/apikey and add to .env"
-                if GEMINI_AVAILABLE and os.getenv("GEMINI_API_KEY") and not gemini_model:
-                    error_details.append("Failed to initialize Gemini model (check API key)")
-                    logger.error("Gemini model initialization failed despite API key presence")
+                if (
+                    GEMINI_AVAILABLE
+                    and os.getenv("GEMINI_API_KEY")
+                    and not gemini_model
+                ):
+                    error_details.append(
+                        "Failed to initialize Gemini model (check API key)"
+                    )
+                    logger.error(
+                        "Gemini model initialization failed despite API key presence"
+                    )
             elif AI_SERVICE == "openai":
                 if not OPENAI_AVAILABLE:
                     error_details.append("openai package not installed")
@@ -483,13 +503,17 @@ CRITICAL FORMAT RULES:
 
         # Try to find JSON object in the content
         if not content.startswith("{"):
-            logger.debug("Content doesn't start with '{', searching for JSON boundaries")
+            logger.debug(
+                "Content doesn't start with '{', searching for JSON boundaries"
+            )
             # Find the first { and last }
             start_idx = content.find("{")
             end_idx = content.rfind("}")
             if start_idx != -1 and end_idx != -1 and end_idx > start_idx:
                 content = content[start_idx : end_idx + 1]
-                logger.debug(f"Extracted JSON substring from position {start_idx} to {end_idx}")
+                logger.debug(
+                    f"Extracted JSON substring from position {start_idx} to {end_idx}"
+                )
 
         # Clean up common issues
         content = content.strip()
@@ -509,7 +533,9 @@ CRITICAL FORMAT RULES:
             return result
         except json.JSONDecodeError as e:
             logger.debug(f"JSON decode error: {e!s}")
-            logger.debug(f"Response content (first 1000 chars): {original_content[:1000]}")
+            logger.debug(
+                f"Response content (first 1000 chars): {original_content[:1000]}"
+            )
             logger.debug(f"Extracted content (first 500 chars): {content[:500]}")
 
             # Try to fix common JSON issues and retry
@@ -581,7 +607,9 @@ CRITICAL FORMAT RULES:
                 # Try parsing again
                 result = json.loads(content_fixed)
                 if "title" not in result or "steps" not in result:
-                    raise json.JSONDecodeError("Missing required fields", content_fixed, 0)
+                    raise json.JSONDecodeError(
+                        "Missing required fields", content_fixed, 0
+                    )
                 logger.info("JSON fixed and parsed successfully after error correction")
                 return result
             except Exception as fix_error:
@@ -599,7 +627,11 @@ CRITICAL FORMAT RULES:
         error_str = str(e)
 
         # Check for specific API errors
-        if "insufficient_quota" in error_str or "429" in error_str or "quota" in error_str.lower():
+        if (
+            "insufficient_quota" in error_str
+            or "429" in error_str
+            or "quota" in error_str.lower()
+        ):
             logger.critical("API quota exceeded - service unavailable")
             if AI_SERVICE == "openai":
                 raise Exception(
@@ -620,14 +652,18 @@ CRITICAL FORMAT RULES:
             ) from e
         elif "rate_limit" in error_str:
             logger.warning("API rate limit exceeded")
-            raise Exception("API rate limit exceeded. Please wait a moment and try again") from e
+            raise Exception(
+                "API rate limit exceeded. Please wait a moment and try again"
+            ) from e
         else:
             logger.error(f"Error in generate_task_breakdown: {error_str}")
             logger.debug(f"Traceback: {error_trace}")
             raise Exception(f"Error generating task breakdown: {error_str}") from e
 
 
-def generate_step_instructions(step_title: str, step_description: str, context: str = "") -> str:
+def generate_step_instructions(
+    step_title: str, step_description: str, context: str = ""
+) -> str:
     """
     Generate detailed instructions for a single step.
 

@@ -62,5 +62,7 @@ async def get_guide(task_id: int, db: Session = Depends(get_db)):
         raise
     except Exception as e:
         logger.error(f"Error fetching guide steps for task {task_id}: {e}")
-        logger.critical(f"Critical database error while fetching guide steps for task {task_id}")
+        logger.critical(
+            f"Critical database error while fetching guide steps for task {task_id}"
+        )
         raise HTTPException(status_code=500, detail="Internal server error") from e

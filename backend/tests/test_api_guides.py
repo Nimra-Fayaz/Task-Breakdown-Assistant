@@ -7,7 +7,9 @@ class TestGetGuide:
     """Tests for GET /api/guides/{task_id} endpoint."""
 
     @patch("task_breakdown.api.tasks.generate_task_breakdown")
-    def test_get_guide_success(self, mock_generate, client, setup_database, sample_breakdown_data):
+    def test_get_guide_success(
+        self, mock_generate, client, setup_database, sample_breakdown_data
+    ):
         """Test successful guide retrieval."""
         mock_generate.return_value = sample_breakdown_data
 
