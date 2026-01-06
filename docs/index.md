@@ -48,7 +48,6 @@ Visit http://localhost:5173 to access the application.
 
 - **[Full Documentation](DOCUMENTATION.md)** - Complete setup and usage guide
 - **[Tutorials](tutorials/tutorial.md)** - Step-by-step tutorials
-- **[Build Instructions](../BUILD.md)** - Build and deployment guide
 
 ## Tech Stack
 
@@ -71,7 +70,7 @@ Get the latest release from our [GitHub Releases](https://github.com/Nimra-Fayaz
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](../LICENSE) file for details.
+This project is licensed under the MIT License.
 
 ## Author
 

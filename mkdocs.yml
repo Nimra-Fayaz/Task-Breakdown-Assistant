@@ -47,9 +47,6 @@ nav:
   - Documentation: DOCUMENTATION.md
   - Tutorials:
       - Getting Started: tutorials/tutorial.md
-  - About:
-      - License: ../LICENSE
-      - Build Instructions: ../BUILD.md
 
 markdown_extensions:
   - admonition
