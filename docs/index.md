@@ -2,6 +2,8 @@
 
 AI-powered task breakdown assistant that generates detailed, beginner-friendly step-by-step guides for complex tasks and assignments.
 
+> Complete CI/CD implementation with automated testing, releases, and documentation.
+
 ## Overview
 
 This full-stack application helps users break down complex tasks into manageable, detailed steps with beginner-friendly instructions. It supports both software development tasks and hardware/electronics projects (ESP32, Arduino, Raspberry Pi).
