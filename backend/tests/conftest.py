@@ -43,7 +43,10 @@ def client():
 @pytest.fixture
 def sample_task_data():
     """Sample task data for testing."""
-    return {"title": "Test Task", "description": "Create a hello world program in Python"}
+    return {
+        "title": "Test Task",
+        "description": "Create a hello world program in Python",
+    }
 
 
 @pytest.fixture

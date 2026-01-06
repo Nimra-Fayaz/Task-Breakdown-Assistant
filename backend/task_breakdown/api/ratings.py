@@ -33,7 +33,8 @@ async def create_rating(rating: RatingCreate, db: Session = Depends(get_db)):
                 f"Invalid rating value: {rating.rating} (must be between {MIN_RATING} and {MAX_RATING})"
             )
             raise HTTPException(
-                status_code=400, detail=f"Rating must be between {MIN_RATING} and {MAX_RATING}"
+                status_code=400,
+                detail=f"Rating must be between {MIN_RATING} and {MAX_RATING}",
             )
 
         # Create rating

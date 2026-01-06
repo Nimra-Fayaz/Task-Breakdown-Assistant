@@ -39,7 +39,8 @@ class TestGetGuide:
 
         # Create a task
         task_response = client.post(
-            "/api/tasks", json={"description": "Test task description that is long enough"}
+            "/api/tasks",
+            json={"description": "Test task description that is long enough"},
         )
         task_id = task_response.json()["id"]
 
@@ -108,7 +109,8 @@ class TestGetGuide:
 
         # Create a task
         task_response = client.post(
-            "/api/tasks", json={"description": "Test task description that is long enough"}
+            "/api/tasks",
+            json={"description": "Test task description that is long enough"},
         )
         task_id = task_response.json()["id"]
 

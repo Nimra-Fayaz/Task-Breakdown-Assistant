@@ -535,7 +535,16 @@ CRITICAL FORMAT RULES:
                             if i + 1 < len(text):
                                 next_char = text[i + 1]
                                 # Valid escape sequences (single char)
-                                if next_char in ["\\", '"', "/", "b", "f", "n", "r", "t"]:
+                                if next_char in [
+                                    "\\",
+                                    '"',
+                                    "/",
+                                    "b",
+                                    "f",
+                                    "n",
+                                    "r",
+                                    "t",
+                                ]:
                                     result.append(text[i : i + 2])
                                     i += 2
                                 # Unicode escape sequence \uXXXX

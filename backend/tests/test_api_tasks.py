@@ -16,7 +16,8 @@ class TestCreateTask:
         mock_generate.return_value = sample_breakdown_data
 
         response = client.post(
-            "/api/tasks", json={"title": "Test Task", "description": "Create a hello world program"}
+            "/api/tasks",
+            json={"title": "Test Task", "description": "Create a hello world program"},
         )
 
         assert response.status_code == 201
@@ -111,7 +112,8 @@ class TestGetTasks:
         # Create multiple tasks
         for i in range(5):
             client.post(
-                "/api/tasks", json={"title": f"Task {i}", "description": f"Description {i}"}
+                "/api/tasks",
+                json={"title": f"Task {i}", "description": f"Description {i}"},
             )
 
         # Get tasks with limit

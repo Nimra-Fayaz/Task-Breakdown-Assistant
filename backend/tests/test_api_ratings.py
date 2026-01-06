@@ -19,13 +19,15 @@ class TestCreateRating:
 
         # First create a task
         task_response = client.post(
-            "/api/tasks", json={"description": "Test task description that is long enough"}
+            "/api/tasks",
+            json={"description": "Test task description that is long enough"},
         )
         task_id = task_response.json()["id"]
 
         # Create rating
         response = client.post(
-            "/api/ratings/", json={"task_id": task_id, "rating": 5, "comment": "Great guide!"}
+            "/api/ratings/",
+            json={"task_id": task_id, "rating": 5, "comment": "Great guide!"},
         )
 
         assert response.status_code == 201
@@ -42,7 +44,8 @@ class TestCreateRating:
 
         # Create a task
         task_response = client.post(
-            "/api/tasks", json={"description": "Test task description that is long enough"}
+            "/api/tasks",
+            json={"description": "Test task description that is long enough"},
         )
         task_id = task_response.json()["id"]
 
@@ -61,7 +64,8 @@ class TestCreateRating:
 
         # Create a task
         task_response = client.post(
-            "/api/tasks", json={"description": "Test task description that is long enough"}
+            "/api/tasks",
+            json={"description": "Test task description that is long enough"},
         )
         task_id = task_response.json()["id"]
 
@@ -90,7 +94,8 @@ class TestCreateRating:
 
         # Create a task
         task_response = client.post(
-            "/api/tasks", json={"description": "Test task description that is long enough"}
+            "/api/tasks",
+            json={"description": "Test task description that is long enough"},
         )
         task_id = task_response.json()["id"]
 
@@ -130,7 +135,8 @@ class TestGetRatings:
 
         # Create a task
         task_response = client.post(
-            "/api/tasks", json={"description": "Test task description that is long enough"}
+            "/api/tasks",
+            json={"description": "Test task description that is long enough"},
         )
         task_id = task_response.json()["id"]
 
@@ -151,7 +157,8 @@ class TestGetRatings:
 
         # Create a task
         task_response = client.post(
-            "/api/tasks", json={"description": "Test task description that is long enough"}
+            "/api/tasks",
+            json={"description": "Test task description that is long enough"},
         )
         task_id = task_response.json()["id"]
 
@@ -177,7 +184,8 @@ class TestGetRatings:
 
         # Create a task
         task_response = client.post(
-            "/api/tasks", json={"description": "Test task description that is long enough"}
+            "/api/tasks",
+            json={"description": "Test task description that is long enough"},
         )
         task_id = task_response.json()["id"]
 

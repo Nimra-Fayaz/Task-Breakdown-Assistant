@@ -63,7 +63,11 @@ async def root():
     """Root endpoint."""
     logger.debug("Root endpoint accessed")
     logger.info("API root endpoint called")
-    return {"message": "Task Breakdown Assistant API", "version": "0.1.0", "docs": "/docs"}
+    return {
+        "message": "Task Breakdown Assistant API",
+        "version": "0.1.0",
+        "docs": "/docs",
+    }
 
 
 @app.get("/health")
