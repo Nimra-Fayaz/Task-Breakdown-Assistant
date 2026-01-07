@@ -1,0 +1,88 @@
+# Docker Compose configuration for Task Breakdown Assistant
+# Multi-container application with Backend, Frontend, and Ollama AI service
+
+services:
+  # Ollama AI Service - Local LLM (Recommended for free, local AI)
+  ollama:
+    image: ollama/ollama:latest
+    container_name: task-breakdown-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      # Persist Ollama models
+      - ollama_data:/root/.ollama
+    networks:
+      - task-breakdown-network
+    restart: unless-stopped
+
+  # Backend API - FastAPI Python application
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: task-breakdown-backend
+    ports:
+      - "8000:8000"
+    environment:
+      # AI Service Configuration
+      - AI_SERVICE=ollama
+      - OLLAMA_MODEL=llama3.2
+      - OLLAMA_HOST=http://ollama:11434
+      # Database Configuration
+      - DATABASE_URL=sqlite:///./data/task_breakdown.db
+      # Server Configuration
+      - HOST=0.0.0.0
+      - PORT=8000
+      # Python Configuration
+      - PYTHONUNBUFFERED=1
+    volumes:
+      # Persist SQLite database
+      - backend_data:/app/data
+      # Mount source code for development (optional - comment out for production)
+      - ./backend/task_breakdown:/app/task_breakdown
+    depends_on:
+      - ollama
+    networks:
+      - task-breakdown-network
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+
+  # Frontend - React + Nginx
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: task-breakdown-frontend
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+    networks:
+      - task-breakdown-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+# Networks
+networks:
+  task-breakdown-network:
+    driver: bridge
+    name: task-breakdown-network
+
+# Volumes for data persistence
+volumes:
+  # Ollama models storage
+  ollama_data:
+    name: task-breakdown-ollama-data
+  # Backend SQLite database
+  backend_data:
+    name: task-breakdown-backend-data

@@ -1,0 +1,54 @@
+# Root .dockerignore for multi-container setup
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Documentation
+*.md
+docs/
+LICENSE
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node modules (frontend)
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+
+# Python cache (backend)
+backend/__pycache__/
+backend/*.pyc
+backend/.pytest_cache/
+backend/dist/
+backend/build/
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs
+*.log
+
+# Environment files
+.env
+.env.*
+
+# Misc
+*.bak
+*.tmp

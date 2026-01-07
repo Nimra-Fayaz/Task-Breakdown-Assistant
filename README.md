@@ -17,6 +17,19 @@ This full-stack application helps users break down complex tasks into manageable
 - **Persistent Storage**: Save guides to database, retrieve and reuse anytime
 - **Rating System**: Community ratings to validate guide quality
 
+## Docker Quick Start (Recommended)
+
+Run the entire application with Docker in one command:
+
+```bash
+docker-compose up -d
+docker exec task-breakdown-ollama ollama pull llama3.2
+```
+
+The application will be available at http://localhost:5173 after services start.
+
+**Documentation**: See [DOCKER.md](DOCKER.md) for complete Docker documentation.
+
 ## Architecture
 
 ### Tech Stack
