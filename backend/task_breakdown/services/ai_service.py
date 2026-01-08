@@ -42,6 +42,9 @@ openai_client = None
 gemini_model = None
 ollama_client = None
 ollama_model_name = os.getenv("OLLAMA_MODEL", "llama3.2")  # Default to llama3.2
+ollama_host = os.getenv(
+    "OLLAMA_HOST", "http://localhost:11434"
+)  # Docker: http://ollama:11434
 
 
 # Function to check Ollama availability dynamically
@@ -52,7 +55,7 @@ def check_ollama_available():
 
         # Test if Ollama server is running
         try:
-            response = requests.get("http://localhost:11434/api/tags", timeout=3)
+            response = requests.get(f"{ollama_host}/api/tags", timeout=3)
             if response.status_code == HTTP_OK:
                 # Check if llama3.2 model is available
                 models = response.json().get("models", [])
