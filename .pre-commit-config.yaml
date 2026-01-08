@@ -20,7 +20,7 @@ repos:
       - id: mixed-line-ending
         args: ['--fix=lf']
 
-  # Python code formatting with Ruff
+  # Python linting with Ruff
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.1.9
     hooks:
@@ -28,8 +28,13 @@ repos:
         name: ruff (linter)
         args: [--fix, --exit-non-zero-on-fix]
         files: ^backend/.*\.py$
-      - id: ruff-format
-        name: ruff (formatter)
+
+  # Python code formatting with Black
+  - repo: https://github.com/psf/black
+    rev: 23.11.0
+    hooks:
+      - id: black
+        name: black (formatter)
         files: ^backend/.*\.py$
 
   # TypeScript/JavaScript linting with ESLint (local hook)
